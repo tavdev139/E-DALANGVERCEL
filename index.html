@@ -3,419 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>e-DALANG | Pertunjukan Wayang Interaktif</title>
+  <title>Bima dan Arjuna – Janji di Tengah Hutan (e-DALANG)</title>
   <link rel="icon" href="assets/bima_new.png" type="image/png">
-  <!-- MediaPipe Hands & Camera Utils via CDN -->
+  <!-- MediaPipe Hands & Camera Utils -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
   <style>
-    :root {
-      --bg: #0f0b08;
-      --panel: rgba(28, 20, 14, 0.95);
-      --border: #4a3420;
-      --gold: #d4a03c;
-      --gold-light: #f6ca68;
-      --red: #b83320;
-      --text: #ecdccc;
-      --text-dim: #a6917b;
-    }
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       user-select: none;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: #050403;
+      color: #fff;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       min-height: 100vh;
       overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    #game-container {
+    #app-container {
       position: relative;
       width: 1280px;
       height: 720px;
       max-width: 100vw;
       max-height: 56.25vw;
       background: #000;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.85);
-      border: 2px solid var(--border);
+      box-shadow: 0 0 50px rgba(0,0,0,0.9);
       overflow: hidden;
     }
 
-    /* Canvas Stage */
-    #stage-canvas {
+    /* Canvas 1280x720 persis seperti Pygame logical canvas */
+    #main-canvas {
       width: 100%;
       height: 100%;
       display: block;
+      cursor: default;
     }
 
-    /* Video element for webcam (hidden from view, drawn on canvas) */
+    /* Video tersembunyi untuk input webcam MediaPipe */
     #webcam-video {
       display: none;
-    }
-
-    /* Overlay Menus & Modals */
-    .overlay-panel {
-      position: absolute;
-      inset: 0;
-      background: rgba(10, 7, 5, 0.88);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      transition: opacity 0.3s;
-    }
-    .hidden {
-      display: none !important;
-    }
-
-    h1.title {
-      font-family: 'Georgia', serif;
-      font-size: 52px;
-      color: var(--gold-light);
-      text-shadow: 0 4px 15px rgba(212, 160, 60, 0.5);
-      margin-bottom: 8px;
-      letter-spacing: 2px;
-    }
-    p.subtitle {
-      color: var(--text-dim);
-      font-size: 18px;
-      margin-bottom: 40px;
-    }
-
-    /* Menu Buttons Grid */
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 240px);
-      gap: 20px;
-    }
-    .menu-btn {
-      background: linear-gradient(180deg, #2a1c12 0%, #1a110a 100%);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 22px 16px;
-      color: var(--text);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      transition: all 0.2s;
-    }
-    .menu-btn:hover {
-      border-color: var(--gold);
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(212, 160, 60, 0.35);
-      color: #fff;
-    }
-    .menu-btn .icon {
-      font-size: 32px;
-    }
-    .menu-btn .label {
-      font-size: 18px;
-      font-weight: bold;
-      color: var(--gold);
-    }
-    .menu-btn .subtext {
-      font-size: 12px;
-      color: var(--text-dim);
-    }
-
-    /* Subtitle & Narration HUD */
-    #subtitle-box {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 90%;
-      background: rgba(18, 12, 8, 0.92);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 24px;
-      z-index: 5;
-      pointer-events: auto;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
-    }
-    #speaker-tag {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--gold-light);
-      margin-bottom: 6px;
-    }
-    #dialogue-text {
-      font-size: 20px;
-      line-height: 1.5;
-      color: #fff;
-    }
-    #dialogue-hint {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--text-dim);
-      text-align: right;
-    }
-
-    /* Top HUD in Free Play & Story */
-    #top-hud {
-      position: absolute;
-      top: 16px;
-      left: 20px;
-      right: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 5;
-      pointer-events: none;
-    }
-    .hud-chip {
-      background: rgba(24, 16, 11, 0.85);
-      border: 1px solid var(--border);
-      padding: 8px 18px;
-      border-radius: 20px;
-      font-size: 14px;
-      color: var(--gold);
-      font-weight: bold;
-      pointer-events: auto;
-      backdrop-filter: blur(4px);
-    }
-    .btn-action {
-      background: #2a1c12;
-      border: 1px solid var(--gold);
-      color: var(--text);
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      pointer-events: auto;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    .btn-action:hover {
-      background: var(--gold);
-      color: #120c08;
-    }
-
-    /* Hand Tracking Camera PIP Window */
-    #camera-pip {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      width: 260px;
-      height: 160px;
-      border-radius: 10px;
-      border: 2px solid var(--gold);
-      background: #000;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-      z-index: 8;
-    }
-    #pip-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      transform: scaleX(-1); /* mirror */
-    }
-    .pip-badge {
-      position: absolute;
-      bottom: 6px;
-      left: 8px;
-      background: rgba(0,0,0,0.7);
-      color: var(--gold);
-      padding: 2px 8px;
-      font-size: 11px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-
-    /* Quiz Modal */
-    #quiz-container {
-      max-width: 680px;
-      width: 90%;
-      background: var(--panel);
-      border: 2px solid var(--gold);
-      border-radius: 16px;
-      padding: 32px;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
-    }
-    #quiz-question {
-      font-size: 24px;
-      color: #fff;
-      margin-bottom: 24px;
-      line-height: 1.4;
-      font-family: 'Georgia', serif;
-    }
-    .quiz-options {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    .quiz-opt-btn {
-      background: #25180f;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 20px;
-      color: var(--text);
-      font-size: 16px;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s;
-    }
-    .quiz-opt-btn:hover {
-      border-color: var(--gold);
-      background: #352316;
-    }
-    .quiz-opt-btn.correct {
-      background: #1b4d24;
-      border-color: #4cd964;
-      color: #fff;
-    }
-    .quiz-opt-btn.wrong {
-      background: #5c1e19;
-      border-color: #ff3b30;
-      color: #fff;
-    }
-
-    /* Controls Bar Hint */
-    #bottom-hint {
-      position: absolute;
-      bottom: 8px;
-      width: 100%;
-      text-align: center;
-      font-size: 12px;
-      color: var(--text-dim);
-      pointer-events: none;
     }
   </style>
 </head>
 <body>
 
-  <div id="game-container">
-    <!-- Main Drawing Stage -->
-    <canvas id="stage-canvas" width="1280" height="720"></canvas>
-
-    <!-- Hidden Video for Webcam input -->
+  <div id="app-container">
+    <canvas id="main-canvas" width="1280" height="720"></canvas>
     <video id="webcam-video" playsinline></video>
-
-    <!-- Top HUD Navigation -->
-    <div id="top-hud">
-      <button class="btn-action" id="btn-back-menu">← Menu Utama</button>
-      <div class="hud-chip" id="hud-status">Mode Cerita</div>
-      <button class="btn-action" id="btn-toggle-cam">📷 Kamera Gesture: ON</button>
-    </div>
-
-    <!-- Hand Tracking PIP Preview -->
-    <div id="camera-pip">
-      <canvas id="pip-canvas" width="320" height="240"></canvas>
-      <div class="pip-badge" id="pip-gesture-text">Mendeteksi Tangan...</div>
-    </div>
-
-    <!-- Subtitle Panel -->
-    <div id="subtitle-box" class="hidden">
-      <div id="speaker-tag">Narator</div>
-      <div id="dialogue-text">Memuat cerita...</div>
-      <div id="dialogue-hint">Klik di mana saja atau tekan [SPASI] untuk lanjut</div>
-    </div>
-
-    <!-- MAIN MENU OVERLAY -->
-    <div id="menu-overlay" class="overlay-panel">
-      <h1 class="title">🎭 e - D A L A N G</h1>
-      <p class="subtitle">Pertunjukan Wayang Kulit Interaktif MediaPipe AI</p>
-
-      <div class="menu-grid">
-        <div class="menu-btn" id="btn-start-story">
-          <div class="icon">📜</div>
-          <div class="label">Mainkan Cerita</div>
-          <div class="subtext">Kisah Bima & Arjuna</div>
-        </div>
-
-        <div class="menu-btn" id="btn-start-freeplay">
-          <div class="icon">⚔️</div>
-          <div class="label">Bebas / Tarung</div>
-          <div class="subtext">Kontrol wayang via tangan</div>
-        </div>
-
-        <div class="menu-btn" id="btn-start-quiz">
-          <div class="icon">❓</div>
-          <div class="label">Kuis Budaya</div>
-          <div class="subtext">Uji pemahaman cerita</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- QUIZ OVERLAY -->
-    <div id="quiz-overlay" class="overlay-panel hidden">
-      <div id="quiz-container">
-        <div style="font-size: 13px; color: var(--gold); margin-bottom: 12px; letter-spacing: 1px;" id="quiz-progress">SOAL 1 DARI 5</div>
-        <div id="quiz-question">Pertanyaan kuis dimuat di sini...</div>
-        <div class="quiz-options" id="quiz-options-list"></div>
-        <div id="quiz-feedback" style="min-height: 24px; font-weight: bold; margin-bottom: 16px;"></div>
-        <button class="btn-action" id="btn-quiz-next" style="display:none; margin: 0 auto;">Lanjut Pertanyaan →</button>
-      </div>
-    </div>
-
-    <div id="bottom-hint">e-DALANG Web Version • Kontrol Wayang dengan Gerakan Tangan di Depan Kamera</div>
   </div>
 
   <script>
     /* =========================================================================
-       E-DALANG WEB ENGINE (JavaScript + Canvas + MediaPipe Hands)
+       E-DALANG 1:1 REPLICA ENGINE (Pygame exact layout in HTML5 Canvas)
        ========================================================================= */
 
-    const canvas = document.getElementById("stage-canvas");
+    const canvas = document.getElementById("main-canvas");
     const ctx = canvas.getContext("2d");
-    const pipCanvas = document.getElementById("pip-canvas");
-    const pipCtx = pipCanvas.getContext("2d");
     const video = document.getElementById("webcam-video");
+    const W = 1280;
+    const H = 720;
 
-    // Audio Player
-    const bgmPlayer = new Audio();
-    const voicePlayer = new Audio();
-    bgmPlayer.loop = true;
+    // Audio System
+    const bgm = new Audio();
+    bgm.loop = true;
+    const voice = new Audio();
 
-    // Assets cache
-    const images = {};
-    const ASSET_LIST = {
-      // Backgrounds
-      bg_hutan_gua: "assets/bg_hutan_gua.png",
-      bg_persimpangan: "assets/bg_persimpangan.png",
-      bg_jejak_kaki: "assets/bg_jejak_kaki.png",
-      bg_batik: "assets/bg_batik_ui.jpg",
-      // Puppets
-      bima: "assets/bima_new.png",
-      arjuna: "assets/arjuna_new.png",
-      kapi_angeni: "assets/kapi_angeni.png",
-      semar: "assets/semar.png",
-      preview_stage: "preview_dua_wayang.png"
-    };
-
-    // Preload Images
-    let loadedImagesCount = 0;
-    const totalImages = Object.keys(ASSET_LIST).length;
-    for (const [key, src] of Object.entries(ASSET_LIST)) {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => { loadedImagesCount++; };
-      images[key] = img;
+    function playBGM(file, vol=0.3) {
+      if (!file) return;
+      bgm.src = `audio/${file}`;
+      bgm.volume = vol;
+      bgm.play().catch(() => {});
+    }
+    function stopBGM() {
+      bgm.pause();
+      bgm.currentTime = 0;
+    }
+    function playVoice(file) {
+      if (!file) return;
+      voice.src = `audio/${file}`;
+      voice.play().catch(() => {});
+    }
+    function stopVoice() {
+      voice.pause();
+      voice.currentTime = 0;
     }
 
-    // Story Data
-    let storyData = null;
-    fetch("story.json")
-      .then(r => r.json())
-      .then(d => { storyData = d; });
+    // Asset Images Cache
+    const images = {};
+    const ASSET_PATHS = {
+      ui_batik: "assets/bg_batik_ui.jpg",
+      ui_edalang: "assets/bg_edalang_ui.jpg",
+      hutan_sore: "assets/bg_hutan_gua.png",
+      persimpangan: "assets/bg_persimpangan.png",
+      jejak_kaki: "assets/bg_jejak_kaki.png",
+      keluar_hutan: "assets/bg_hutan_gua.png",
+      // Wayang Puppets
+      werkudara: "assets/werkudara_new.png",
+      arjuna: "assets/arjuna_new.png",
+      bima: "assets/bima_new.png",
+      semar: "assets/semar.png",
+      kapi_angeni: "assets/kapi_angeni.png",
+      wayang_kiri: "assets/wayang_kiri.png",
+      wayang_kanan: "assets/wayang_kanan.png",
+    };
 
-    // Quiz Questions (from main.py)
-    const QUIZ_DATA = [
+    for (const [k, p] of Object.entries(ASSET_PATHS)) {
+      const img = new Image();
+      img.src = p;
+      images[k] = img;
+    }
+
+    // Karakter List (Persis main.py)
+    const CHARACTERS = [
+      { name: "WERKUDARA", file: "werkudara", desc: "Kuat, berani, dan tegas", facing: -1 },
+      { name: "ARJUNA", file: "arjuna", desc: "Bijaksana, sabar, dan adil", facing: -1 },
+      { name: "BIMA", file: "bima", desc: "Pemberani, pantang menyerah", facing: -1 },
+      { name: "SEMAR", file: "semar", desc: "Bijaksana, sabar, rendah hati, dan setia", facing: -1 },
+      { name: "KAPI ANGENI", file: "kapi_angeni", desc: "Berani, tangguh, bersemangat, dan pantang mundur", facing: 1 }
+    ];
+
+    // Questions Data (Persis main.py)
+    const QUIZ_QUESTIONS = [
       {
         question: "Mengapa Bima dan Arjuna berhenti di persimpangan?",
         options: ["Mencari makanan", "Menentukan jalan yang benar", "Mencari rumah", "Menunggu hujan"],
@@ -443,53 +158,892 @@
       }
     ];
 
-    // State Variables
-    let currentMode = "menu"; // "menu", "story", "freeplay", "quiz"
-    let currentSceneIdx = 0;
-    let currentDialogueIdx = -1; // -1 = narration, >=0 = dialogues
+    let storyData = null;
+    fetch("story.json").then(r => r.json()).then(d => { storyData = d; });
+
+    // App State
+    let phase = "menu"; // "menu", "story", "attack", "characters", "physical_wayang", "quiz", "settings"
+    let charLeftIdx = 2; // Bima
+    let charRightIdx = 1; // Arjuna
+    let characterSlot = 0; // 0=Player 1, 1=Player 2
+
+    // Mouse Tracking
+    let mouseX = 0, mouseY = 0;
+    let hoveredBtn = null;
+
+    // Interactive clickable rectangles
+    let hitRects = [];
+
+    // Puppet Positions for Story & Attack
+    const puppetL = { x: 385, y: 470, targetX: 385, targetY: 470, facing: 1, state: 1 };
+    const puppetR = { x: 895, y: 470, targetX: 895, targetY: 470, facing: -1, state: 1 };
+
+    // Physical Mode Parameters
+    const physCtrl = {
+      running: false,
+      nanoConnected: true,
+      grblConnected: true,
+      nanoPort: "COM7",
+      grblPort: "COM5",
+      targetX: 0.0,
+      targetY: 0.0,
+      feedrate: 300,
+      stepperMode: "smart",
+      fullscreenPov: false
+    };
+
+    // Story state
+    let storySceneIdx = 0;
+    let storyDiagIdx = -1;
+
+    // Quiz state
+    let quizIdx = 0;
+    let quizScore = 0;
+    let quizSelected = null;
+    let quizFinished = false;
+
+    // Camera Surface & MediaPipe Hands
+    let latestHandResult = null;
     let cameraActive = true;
 
-    // Puppet Positions & Physics
-    const puppetLeft = {
-      x: 380,
-      y: 460,
-      targetX: 380,
-      targetY: 460,
-      facing: 1, // 1: kanan, -1: kiri
-      scale: 0.88,
-      imgKey: "bima",
-      gesture: "IDLE",
-      armAngle: 0
-    };
-
-    const puppetRight = {
-      x: 880,
-      y: 460,
-      targetX: 880,
-      targetY: 460,
-      facing: -1,
-      scale: 0.88,
-      imgKey: "arjuna",
-      gesture: "IDLE",
-      armAngle: 0
-    };
-
-    // Curtain animation
-    let curtainOpen = 0; // 0 (closed) to 1 (fully open)
-
     /* =========================================================================
-       AUDIO HELPERS
+       DRAWING HELPER FUNCTIONS (1:1 Pygame Equivalent)
        ========================================================================= */
-    function playVoice(filename) {
-      if (!filename) return;
-      voicePlayer.src = `audio/${filename}`;
-      voicePlayer.play().catch(e => console.log("Audio autoplay restricted:", e));
+
+    function drawGoldPanel(x, y, w, h, title=null, subtitle=null, selected=false) {
+      // Shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.beginPath();
+      ctx.roundRect(x + 5, y + 7, w + 10, h + 10, 10);
+      ctx.fill();
+
+      // Panel background
+      ctx.fillStyle = "rgba(35, 24, 16, 0.92)";
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 10);
+      ctx.fill();
+
+      // Border outer gold
+      ctx.strokeStyle = selected ? "#eeb546" : "#9a6927";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 10);
+      ctx.stroke();
+
+      // Inner subtle border
+      ctx.strokeStyle = "#4b321a";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x + 8, y + 8, w - 16, h - 16, 8);
+      ctx.stroke();
+
+      if (title) {
+        ctx.fillStyle = "#ffe8b0";
+        ctx.font = "bold 26px Georgia";
+        ctx.fillText(title, x + 28, y + 36);
+      }
+      if (subtitle) {
+        ctx.fillStyle = "#d7cbba";
+        ctx.font = "14px Arial";
+        ctx.fillText(subtitle, x + 28, y + 60);
+      }
     }
 
-    function playBGM(filename) {
-      bgmPlayer.src = `audio/${filename}`;
-      bgmPlayer.volume = 0.35;
-      bgmPlayer.play().catch(e => console.log("BGM autoplay restricted:", e));
+    function drawCurtains(cw=130) {
+      // Left curtain
+      const gradL = ctx.createLinearGradient(0, 0, cw, 0);
+      gradL.addColorStop(0, "rgba(75, 12, 14, 0.95)");
+      gradL.addColorStop(0.75, "rgba(45, 8, 10, 0.85)");
+      gradL.addColorStop(1, "rgba(20, 4, 5, 0)");
+      ctx.fillStyle = gradL;
+      ctx.fillRect(0, 0, cw, H);
+
+      // Right curtain
+      const gradR = ctx.createLinearGradient(W, 0, W - cw, 0);
+      gradR.addColorStop(0, "rgba(75, 12, 14, 0.95)");
+      gradR.addColorStop(0.75, "rgba(45, 8, 10, 0.85)");
+      gradR.addColorStop(1, "rgba(20, 4, 5, 0)");
+      ctx.fillStyle = gradR;
+      ctx.fillRect(W - cw, 0, cw, H);
+    }
+
+    /* =========================================================================
+       1. PHASE: MENU UTAMA (100% PERSIS SEPERTI TERMINAL / PYGAME)
+       ========================================================================= */
+    function drawMainMenu() {
+      // 1. Background Batik
+      if (images.ui_batik && images.ui_batik.complete) {
+        ctx.drawImage(images.ui_batik, 0, 0, W, H);
+      } else {
+        ctx.fillStyle = "#160e0a";
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // 2. Decorative Theatre Frame
+      ctx.strokeStyle = "#764e1d";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(10, 10, W - 20, H - 20, 18);
+      ctx.stroke();
+
+      ctx.strokeStyle = "#2d1e12";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(19, 19, W - 38, H - 38, 16);
+      ctx.stroke();
+
+      // 3. Title Block
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#7a2612";
+      ctx.font = "bold 54px Georgia";
+      ctx.fillText("E-DALANG", W / 2, 75);
+
+      ctx.fillStyle = "#543218";
+      ctx.font = "bold 25px Georgia";
+      ctx.fillText("EXPERIENCE THE WAYANG DIFFERENTLY", W / 2, 110);
+
+      // 4. Character Cards Showcase (5 Kartu di atas tombol)
+      const cardTop = 136;
+      const cardH = 260;
+      const cardW = 210;
+      const cardGap = 16;
+      const totalCardsW = cardW * 5 + cardGap * 4;
+      const startX = (W - totalCardsW) / 2;
+
+      for (let i = 0; i < CHARACTERS.length; i++) {
+        const char = CHARACTERS[i];
+        const cx = startX + i * (cardW + cardGap);
+        drawGoldPanel(cx, cardTop, cardW, cardH, null, null, false);
+
+        // Title
+        ctx.fillStyle = "#ffe8b0";
+        ctx.font = "bold 20px Georgia";
+        ctx.fillText(char.name, cx + cardW / 2, cardTop + 30);
+
+        // Character Image
+        const img = images[char.file];
+        if (img && img.complete) {
+          const maxImgW = cardW - 24;
+          const maxImgH = cardH - 95;
+          const scale = Math.min(maxImgW / img.width, maxImgH / img.height);
+          const dw = img.width * scale;
+          const dh = img.height * scale;
+          ctx.drawImage(img, cx + (cardW - dw) / 2, cardTop + 45 + (maxImgH - dh) / 2, dw, dh);
+        }
+
+        // Trait Description
+        ctx.fillStyle = "#e1d7c3";
+        ctx.font = "12px Arial";
+        ctx.fillText(char.desc, cx + cardW / 2, cardTop + cardH - 15);
+      }
+
+      // 5. 6 Mode Buttons Layout (2 Baris x 3 Kolom)
+      const btnW = 320;
+      const btnH = 68;
+      const btnGapX = 16;
+      const btnGapY = 14;
+      const totalBtnW = btnW * 3 + btnGapX * 2;
+      const btnStartX = (W - totalBtnW) / 2;
+      const row1Y = 430;
+      const row2Y = row1Y + btnH + btnGapY;
+
+      const BUTTONS = [
+        { label: "MODE STORY", key: "story", x: btnStartX, y: row1Y },
+        { label: "GESTURE ATTACK", key: "attack", x: btnStartX + (btnW + btnGapX), y: row1Y },
+        { label: "PILIH KARAKTER", key: "characters", x: btnStartX + (btnW + btnGapX) * 2, y: row1Y },
+        { label: "WAYANG FISIK", key: "physical", x: btnStartX, y: row2Y },
+        { label: "MODE QUIZ", key: "quiz", x: btnStartX + (btnW + btnGapX), y: row2Y },
+        { label: "PENGATURAN", key: "settings", x: btnStartX + (btnW + btnGapX) * 2, y: row2Y },
+      ];
+
+      for (const btn of BUTTONS) {
+        const isHover = (mouseX >= btn.x && mouseX <= btn.x + btnW && mouseY >= btn.y && mouseY <= btn.y + btnH);
+        hitRects.push({ key: btn.key, x: btn.x, y: btn.y, w: btnW, h: btnH });
+
+        drawGoldPanel(btn.x, btn.y, btnW, btnH, null, null, isHover);
+
+        ctx.fillStyle = "#ffe8b0";
+        ctx.font = "bold 23px Georgia";
+        ctx.textAlign = "center";
+        ctx.fillText(btn.label, btn.x + btnW / 2, btn.y + btnH / 2 + 8);
+      }
+
+      // Footer hint
+      ctx.fillStyle = "#543218";
+      ctx.font = "15px Arial";
+      ctx.fillText("1 Story  •  2 Attack  •  3 Karakter  •  4 Fisik  •  5 Quiz  •  6 Pengaturan  •  ESC keluar", W / 2, 700);
+    }
+
+    /* =========================================================================
+       2. PHASE: PILIH KARAKTER (1:1 Pygame Character Menu)
+       ========================================================================= */
+    function drawCharacterMenu() {
+      if (images.hutan_sore && images.hutan_sore.complete) {
+        ctx.drawImage(images.hutan_sore, 0, 0, W, H);
+      }
+      ctx.fillStyle = "rgba(8, 5, 3, 0.82)";
+      ctx.fillRect(0, 0, W, H);
+
+      // Header
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#ffde9d";
+      ctx.font = "bold 34px Georgia";
+      ctx.fillText("PILIH KARAKTER", 50, 48);
+
+      ctx.fillStyle = "#d7cbba";
+      ctx.font = "15px Arial";
+      ctx.fillText("Pilih karakter untuk Gesture Attack. Story tetap memakai Bima dan Arjuna.", 50, 75);
+
+      // Back Button Circle
+      hitRects.push({ key: "back_to_menu", x: W - 100, y: 30, w: 50, h: 50 });
+      ctx.fillStyle = "#2e2014";
+      ctx.beginPath();
+      ctx.arc(W - 75, 55, 25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#eeb546";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffe29e";
+      ctx.font = "bold 22px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("←", W - 75, 62);
+
+      // Left Column Cards (2 kolom x 3 baris)
+      const startX = 60;
+      const startY = 120;
+      const cw = 150;
+      const ch = 180;
+      const gap = 16;
+
+      const activeIdx = (characterSlot === 0 ? charLeftIdx : charRightIdx);
+
+      for (let i = 0; i < CHARACTERS.length; i++) {
+        const c = CHARACTERS[i];
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const x = startX + col * (cw + gap);
+        const y = startY + row * (ch + gap);
+
+        hitRects.push({ key: `pick_char_${i}`, x, y, w: cw, h: ch });
+
+        const isChosen = (i === activeIdx);
+        const isHover = (mouseX >= x && mouseX <= x + cw && mouseY >= y && mouseY <= y + ch);
+
+        ctx.fillStyle = isChosen ? "rgba(75, 50, 30, 0.95)" : "rgba(36, 26, 18, 0.9)";
+        ctx.beginPath();
+        ctx.roundRect(x, y, cw, ch, 10);
+        ctx.fill();
+
+        ctx.strokeStyle = isChosen ? "#fff4d6" : (isHover ? "#eeb546" : "#7a5628");
+        ctx.lineWidth = isChosen ? 3 : 2;
+        ctx.stroke();
+
+        // Thumbnail
+        const img = images[c.file];
+        if (img && img.complete) {
+          const sc = Math.min((cw - 20) / img.width, (ch - 55) / img.height);
+          const dw = img.width * sc;
+          const dh = img.height * sc;
+          ctx.drawImage(img, x + (cw - dw) / 2, y + 8 + (ch - 55 - dh) / 2, dw, dh);
+        }
+
+        // Label strip
+        ctx.fillStyle = "#eedcb8";
+        ctx.beginPath();
+        ctx.roundRect(x + 6, y + ch - 38, cw - 12, 30, 6);
+        ctx.fill();
+
+        ctx.fillStyle = "#1e130a";
+        ctx.font = "bold 13px Arial";
+        ctx.fillText(c.name, x + cw / 2, y + ch - 18);
+      }
+
+      // Middle: Big Character Preview
+      const selChar = CHARACTERS[activeIdx];
+      const bigImg = images[selChar.file];
+      if (bigImg && bigImg.complete) {
+        ctx.save();
+        ctx.translate(620, 420);
+        ctx.scale(-selChar.facing * 0.95, 0.95);
+        ctx.drawImage(bigImg, -bigImg.width * 0.4, -bigImg.height * 0.4, bigImg.width * 0.8, bigImg.height * 0.8);
+        ctx.restore();
+      }
+
+      // Right: Slot Selection Tabs (Pemain 1 & Pemain 2)
+      const tabX = 920;
+      const tabY = 160;
+      const tabW = 280;
+
+      // Slot 1 Tab
+      hitRects.push({ key: "tab_slot_0", x: tabX, y: tabY, w: tabW, h: 72 });
+      drawGoldPanel(tabX, tabY, tabW, 72, "Pemain 1 (Kiri)", CHARACTERS[charLeftIdx].name, characterSlot === 0);
+
+      // Slot 2 Tab
+      hitRects.push({ key: "tab_slot_1", x: tabX, y: tabY + 90, w: tabW, h: 72 });
+      drawGoldPanel(tabX, tabY + 90, tabW, 72, "Pemain 2 (Kanan)", CHARACTERS[charRightIdx].name, characterSlot === 1);
+
+      // Info box
+      drawGoldPanel(tabX, tabY + 200, tabW, 200, selChar.name, selChar.desc, false);
+
+      ctx.fillStyle = "#a6917b";
+      ctx.font = "14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Tekan 1 / 2 untuk memilih pemain • Klik kartu untuk memilih karakter • ESC kembali", W / 2, 700);
+    }
+
+    /* =========================================================================
+       3. PHASE: WAYANG FISIK (1:1 PANGGUNG PENGATURAN MOTOR STEPPER & CAMERA)
+       ========================================================================= */
+    function drawPhysicalWayangUI() {
+      // 1. Top Navbar
+      ctx.fillStyle = "rgba(18, 14, 12, 0.98)";
+      ctx.fillRect(0, 0, W, 56);
+      ctx.strokeStyle = "#2d2219";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, 56);
+      ctx.lineTo(W, 56);
+      ctx.stroke();
+
+      // Flame Icon
+      ctx.fillStyle = "#e4a030";
+      ctx.beginPath();
+      ctx.arc(28, 28, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#f5d791";
+      ctx.font = "bold 22px Georgia";
+      ctx.fillText("E-DALANG", 52, 32);
+
+      ctx.fillStyle = "#a08c78";
+      ctx.font = "11px Arial";
+      ctx.fillText("Wayang Gesture Controller • Mode Fisik", 52, 48);
+
+      // Top Right Pills
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#6fd278";
+      ctx.font = "bold 13px Arial";
+      ctx.fillText("● UNO: COM7 (115200)   ● Woodpecker: COM5 (115200)   ● Kamera AI: Aktif", W - 25, 34);
+
+      // 2. Stage Rect (Left)
+      const sidebarW = 380;
+      const stageW = W - sidebarW;
+      const stageH = H - 56;
+
+      ctx.fillStyle = "#120e0a";
+      ctx.fillRect(0, 56, stageW, stageH);
+
+      // Camera view on Stage
+      if (video.readyState >= 2) {
+        ctx.save();
+        ctx.translate(stageW, 56);
+        ctx.scale(-1, 1); // Mirror
+        ctx.drawImage(video, 0, 0, stageW, stageH);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = "#1b140f";
+        ctx.fillRect(0, 56, stageW, stageH);
+      }
+
+      // Red Curtains Frame
+      drawCurtains(100);
+
+      // Top Chips overlay on stage
+      drawGoldPanel(30, 75, 230, 52, null, null, false);
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#bea582";
+      ctx.font = "bold 10px Arial";
+      ctx.fillText("TANGAN KIRI → STEPPER X", 42, 92);
+      ctx.fillStyle = "#ffe18c";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText(`X: ${physCtrl.targetX.toFixed(1)} mm`, 42, 114);
+
+      drawGoldPanel(stageW - 260, 75, 230, 52, null, null, false);
+      ctx.fillStyle = "#bea582";
+      ctx.font = "bold 10px Arial";
+      ctx.fillText("TANGAN KANAN → STEPPER Y", stageW - 248, 92);
+      ctx.fillStyle = "#ffe18c";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText(`Y: ${physCtrl.targetY.toFixed(1)} mm`, stageW - 248, 114);
+
+      // Center Prompt (When Not Running)
+      if (!physCtrl.running) {
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffe6a0";
+        ctx.font = "bold 34px Georgia";
+        ctx.fillText("PANGGUNG SIAP", stageW / 2, 280);
+
+        ctx.fillStyle = "#dcd1b9";
+        ctx.font = "15px Arial";
+        ctx.fillText("Hubungkan port COM di panel kanan, lalu mulai pertunjukan.", stageW / 2, 320);
+        ctx.fillText("Tangan kiri menggerakkan wayang kiri, tangan kanan wayang kanan.", stageW / 2, 345);
+
+        // Big Gold Start Button
+        const sbW = 240, sbH = 48;
+        const sbX = stageW / 2 - sbW / 2, sbY = 380;
+        hitRects.push({ key: "toggle_phys_start", x: sbX, y: sbY, w: sbW, h: sbH });
+
+        ctx.fillStyle = "#e0a02d";
+        ctx.beginPath();
+        ctx.roundRect(sbX, sbY, sbW, sbH, 10);
+        ctx.fill();
+
+        ctx.fillStyle = "#281708";
+        ctx.font = "bold 18px Georgia";
+        ctx.fillText("▶  Mulai Pertunjukan", stageW / 2, sbY + 30);
+      } else {
+        // Red Stop Button
+        const sbW = 240, sbH = 44;
+        const sbX = stageW / 2 - sbW / 2, sbY = stageH - 20;
+        hitRects.push({ key: "toggle_phys_start", x: sbX, y: sbY, w: sbW, h: sbH });
+
+        ctx.fillStyle = "#9a2b1b";
+        ctx.beginPath();
+        ctx.roundRect(sbX, sbY, sbW, sbH, 8);
+        ctx.fill();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 16px Georgia";
+        ctx.textAlign = "center";
+        ctx.fillText("■  Hentikan Pertunjukan", stageW / 2, sbY + 28);
+      }
+
+      // Bottom Bar on Stage
+      hitRects.push({ key: "back_to_menu", x: 20, y: H - 34, w: 125, h: 28 });
+      ctx.fillStyle = "#281c12";
+      ctx.beginPath();
+      ctx.roundRect(20, H - 34, 125, 28, 6);
+      ctx.fill();
+      ctx.strokeStyle = "#da9f30";
+      ctx.stroke();
+
+      ctx.fillStyle = "#f5d791";
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("← Menu Utama", 82, H - 16);
+
+      // Fullscreen POV Button
+      hitRects.push({ key: "toggle_phys_fs", x: 160, y: H - 34, w: 170, h: 28 });
+      ctx.fillStyle = "#281c12";
+      ctx.beginPath();
+      ctx.roundRect(160, H - 34, 170, 28, 6);
+      ctx.fill();
+      ctx.strokeStyle = "#da9f30";
+      ctx.stroke();
+
+      ctx.fillStyle = "#f5d791";
+      ctx.font = "bold 12px Arial";
+      ctx.fillText("⛶ Layar Penuh POV (F)", 245, H - 16);
+
+      // 3. Right Sidebar Controls
+      const sideX = stageW;
+      ctx.fillStyle = "rgba(20, 15, 13, 0.98)";
+      ctx.fillRect(sideX, 56, sidebarW, H - 56);
+      ctx.strokeStyle = "#2d2219";
+      ctx.beginPath();
+      ctx.moveTo(sideX, 56);
+      ctx.lineTo(sideX, H);
+      ctx.stroke();
+
+      // Card 1: Arduino UNO
+      drawGoldPanel(sideX + 14, 68, sidebarW - 28, 130, "Arduino UNO", "servo wayang", false);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#4cd964";
+      ctx.font = "bold 12px Arial";
+      ctx.fillText("Terhubung (COM7)", sideX + sidebarW - 32, 95);
+
+      hitRects.push({ key: "test_servo", x: sideX + sidebarW - 140, y: 140, w: 110, h: 32 });
+      ctx.fillStyle = "#3a2818";
+      ctx.beginPath();
+      ctx.roundRect(sideX + sidebarW - 140, 140, 110, 32, 6);
+      ctx.fill();
+      ctx.strokeStyle = "#b8832a";
+      ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#f5d791";
+      ctx.font = "bold 12px Arial";
+      ctx.fillText("Tes servo", sideX + sidebarW - 85, 161);
+
+      // Card 2: Woodpecker GRBL
+      drawGoldPanel(sideX + 14, 212, sidebarW - 28, 165, "Woodpecker", "GRBL • rel X/Y", false);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#4cd964";
+      ctx.font = "bold 12px Arial";
+      ctx.fillText("Terhubung (COM5)", sideX + sidebarW - 32, 240);
+
+      // Jog Buttons
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#a08c78";
+      ctx.font = "bold 11px Arial";
+      ctx.fillText("UJI MANUAL STEPPER MOTOR:", sideX + 32, 305);
+
+      const jogBtns = [
+        { label: "X -10", deltaX: -10, deltaY: 0 },
+        { label: "X +10", deltaX: 10, deltaY: 0 },
+        { label: "Y -10", deltaX: 0, deltaY: -10 },
+        { label: "Y +10", deltaX: 0, deltaY: 10 }
+      ];
+      jogBtns.forEach((jb, idx) => {
+        const jx = sideX + 32 + idx * 76;
+        hitRects.push({ key: `jog_${idx}`, x: jx, y: 320, w: 68, h: 26, deltaX: jb.deltaX, deltaY: jb.deltaY });
+        ctx.fillStyle = "#2d2014";
+        ctx.beginPath();
+        ctx.roundRect(jx, 320, 68, 26, 4);
+        ctx.fill();
+        ctx.strokeStyle = "#da9f30";
+        ctx.stroke();
+        ctx.fillStyle = "#ffe29e";
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(jb.label, jx + 34, 337);
+      });
+
+      // Card 3: Pengaturan Kecepatan Motor Stepper
+      drawGoldPanel(sideX + 14, 390, sidebarW - 28, H - 400, "Pengaturan Kecepatan", `Speed: ${physCtrl.feedrate} mm/min`, false);
+
+      // Speed Adjust Buttons (-50, -10, +10, +50)
+      const spdBtns = [-50, -10, 10, 50];
+      spdBtns.forEach((delta, idx) => {
+        const bx = sideX + 32 + idx * 76;
+        hitRects.push({ key: `spd_${delta}`, x: bx, y: 460, w: 68, h: 30, delta });
+        ctx.fillStyle = "#2d2014";
+        ctx.beginPath();
+        ctx.roundRect(bx, 460, 68, 30, 6);
+        ctx.fill();
+        ctx.strokeStyle = "#b8832a";
+        ctx.stroke();
+        ctx.fillStyle = "#ffe29e";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText((delta > 0 ? `+${delta}` : `${delta}`), bx + 34, 480);
+      });
+
+      // Mode Smart Toggle Button
+      hitRects.push({ key: "toggle_stepper_mode", x: sideX + 32, y: 510, w: 300, h: 36 });
+      ctx.fillStyle = "#352416";
+      ctx.beginPath();
+      ctx.roundRect(sideX + 32, 510, 300, 36, 6);
+      ctx.fill();
+      ctx.strokeStyle = "#da9f30";
+      ctx.stroke();
+      ctx.fillStyle = "#ffe29e";
+      ctx.font = "bold 13px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(physCtrl.stepperMode === "smart" ? "Mode Stepper: Smart (1 / 2 Tangan)" : "Mode Stepper: 2 Tangan Terpisah", sideX + 182, 533);
+    }
+
+    /* =========================================================================
+       4. PHASE: GESTURE ATTACK / STORY (Panggung Permainan)
+       ========================================================================= */
+    function drawGameStage() {
+      let bgImg = images.hutan_sore;
+      if (phase === "story" && storyData && storyData.scenes[storySceneIdx]) {
+        const sc = storyData.scenes[storySceneIdx];
+        if (sc.background === "persimpangan") bgImg = images.persimpangan;
+        else if (sc.background === "jejak_kaki") bgImg = images.jejak_kaki;
+      }
+      if (bgImg && bgImg.complete) {
+        ctx.drawImage(bgImg, 0, 0, W, H);
+      }
+
+      // Draw Curtains
+      drawCurtains(120);
+
+      // Draw Left Character
+      const leftChar = CHARACTERS[charLeftIdx];
+      const lImg = images[leftChar.file];
+      if (lImg && lImg.complete) {
+        ctx.save();
+        ctx.translate(puppetL.x, puppetL.y);
+        ctx.scale(puppetL.facing * 0.85, 0.85);
+        if (puppetL.state === -1) ctx.rotate(0.15);
+        ctx.drawImage(lImg, -lImg.width * 0.4, -lImg.height * 0.4, lImg.width * 0.8, lImg.height * 0.8);
+        ctx.restore();
+      }
+
+      // Draw Right Character
+      const rightChar = CHARACTERS[charRightIdx];
+      const rImg = images[rightChar.file];
+      if (rImg && rImg.complete) {
+        ctx.save();
+        ctx.translate(puppetR.x, puppetR.y);
+        ctx.scale(puppetR.facing * 0.85, 0.85);
+        if (puppetR.state === -1) ctx.rotate(-0.15);
+        ctx.drawImage(rImg, -rImg.width * 0.4, -rImg.height * 0.4, rImg.width * 0.8, rImg.height * 0.8);
+        ctx.restore();
+      }
+
+      // Subtitle / Dialogue Box (Jika Mode Story)
+      if (phase === "story" && storyData && storyData.scenes[storySceneIdx]) {
+        const sc = storyData.scenes[storySceneIdx];
+        const panelH = 150;
+        const panelY = H - panelH - 25;
+
+        ctx.fillStyle = "rgba(10, 7, 5, 0.9)";
+        ctx.beginPath();
+        ctx.roundRect(50, panelY, W - 100, panelH, 12);
+        ctx.fill();
+        ctx.strokeStyle = "#8d6428";
+        ctx.stroke();
+
+        ctx.textAlign = "left";
+        if (storyDiagIdx === -1) {
+          ctx.fillStyle = "#ffe29e";
+          ctx.font = "bold 24px Georgia";
+          ctx.fillText("Narator", 80, panelY + 34);
+
+          ctx.fillStyle = "#fff";
+          ctx.font = "18px Arial";
+          wrapText(ctx, sc.narration_text, 80, panelY + 68, W - 160, 26);
+        } else {
+          const diag = sc.dialogues[storyDiagIdx];
+          if (diag) {
+            ctx.fillStyle = "#ffe29e";
+            ctx.font = "bold 24px Georgia";
+            ctx.fillText(diag[0], 80, panelY + 34);
+
+            ctx.fillStyle = "#fff";
+            ctx.font = "20px Arial";
+            wrapText(ctx, diag[1], 80, panelY + 70, W - 160, 28);
+          }
+        }
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#a08c78";
+        ctx.font = "13px Arial";
+        ctx.fillText("Tekan [SPASI] atau Klik untuk lanjut cerita →", W - 75, H - 35);
+      }
+
+      // Top Back Button
+      hitRects.push({ key: "back_to_menu", x: 25, y: 20, w: 140, h: 36 });
+      ctx.fillStyle = "rgba(35, 24, 16, 0.9)";
+      ctx.beginPath();
+      ctx.roundRect(25, 20, 140, 36, 6);
+      ctx.fill();
+      ctx.strokeStyle = "#eeb546";
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffe29e";
+      ctx.font = "bold 13px Arial";
+      ctx.fillText("← Menu Utama (M)", 95, 43);
+
+      // Status Gesture Pill
+      ctx.fillStyle = "rgba(35, 24, 16, 0.9)";
+      ctx.beginPath();
+      ctx.roundRect(W / 2 - 200, 20, 400, 36, 18);
+      ctx.fill();
+      ctx.strokeStyle = "#b8832a";
+      ctx.stroke();
+      ctx.fillStyle = "#ffe29e";
+      ctx.font = "bold 13px Arial";
+      ctx.fillText("TELAPAK = GERAK / SIAGA   •   KEPAL = SERANG", W / 2, 43);
+    }
+
+    /* =========================================================================
+       5. PHASE: KUIS PENONTON (1:1 Pygame Quiz UI)
+       ========================================================================= */
+    function drawQuizUI() {
+      if (images.ui_edalang && images.ui_edalang.complete) {
+        ctx.drawImage(images.ui_edalang, 0, 0, W, H);
+      }
+      ctx.fillStyle = "rgba(5, 4, 3, 0.75)";
+      ctx.fillRect(0, 0, W, H);
+
+      // Frame
+      ctx.strokeStyle = "#a06d27";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(14, 14, W - 28, H - 28, 16);
+      ctx.stroke();
+
+      // Title
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffe09b";
+      ctx.font = "bold 44px Georgia";
+      ctx.fillText("KUIS PENONTON", W / 2, 65);
+
+      // Side Characters (Bima kiri, Arjuna kanan)
+      const bimaImg = images.bima;
+      if (bimaImg && bimaImg.complete) {
+        ctx.drawImage(bimaImg, 40, 220, 160, 320);
+      }
+      const arjunaImg = images.arjuna;
+      if (arjunaImg && arjunaImg.complete) {
+        ctx.drawImage(arjunaImg, W - 200, 220, 160, 320);
+      }
+
+      if (!quizFinished) {
+        const q = QUIZ_QUESTIONS[quizIdx];
+
+        // Rail Progress
+        ctx.fillStyle = "#181009";
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - 200, 95, 400, 48, 20);
+        ctx.fill();
+        ctx.strokeStyle = "#976321";
+        ctx.stroke();
+
+        ctx.fillStyle = "#eecb8d";
+        ctx.font = "bold 14px Arial";
+        ctx.fillText("PERJALANAN CERITA", W / 2, 115);
+
+        // Progress Dots
+        for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
+          const dx = (W / 2 - 140) + i * 70;
+          ctx.beginPath();
+          ctx.arc(dx, 130, 8, 0, Math.PI * 2);
+          ctx.fillStyle = (i <= quizIdx) ? "#ffd265" : "#1f170f";
+          ctx.fill();
+          ctx.strokeStyle = "#84591f";
+          ctx.stroke();
+        }
+
+        // Question Number Box
+        drawGoldPanel(W / 2 - 60, 155, 120, 36, null, null, false);
+        ctx.fillStyle = "#ffe7a9";
+        ctx.font = "bold 15px Arial";
+        ctx.fillText(`0${quizIdx + 1} / 05`, W / 2, 178);
+
+        // Question Card
+        const qw = 660, qh = 100;
+        const qx = W / 2 - qw / 2, qy = 210;
+        ctx.fillStyle = "#231810";
+        ctx.beginPath();
+        ctx.roundRect(qx, qy, qw, qh, 12);
+        ctx.fill();
+        ctx.strokeStyle = "#9a6927";
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 20px Georgia";
+        wrapText(ctx, q.question, qx + 30, qy + 40, qw - 60, 28);
+
+        // Option Buttons
+        const optW = 660, optH = 50, optGap = 12;
+        const optY0 = 330;
+
+        for (let i = 0; i < q.options.length; i++) {
+          const oy = optY0 + i * (optH + optGap);
+          hitRects.push({ key: `quiz_opt_${i}`, x: qx, y: oy, w: optW, h: optH });
+
+          const isSel = (quizSelected === i);
+          let borderCol = isSel ? "#eeb546" : "#764e1d";
+          let bgCol = isSel ? "#3f2b1c" : "#231810";
+
+          ctx.fillStyle = bgCol;
+          ctx.beginPath();
+          ctx.roundRect(qx, oy, optW, optH, 8);
+          ctx.fill();
+          ctx.strokeStyle = borderCol;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#ffd265";
+          ctx.font = "bold 18px Arial";
+          ctx.fillText(String.fromCharCode(65 + i), qx + 20, oy + 32);
+
+          ctx.fillStyle = "#ecdccc";
+          ctx.font = "16px Arial";
+          ctx.fillText(q.options[i], qx + 55, oy + 32);
+        }
+
+        // Lanjut Button
+        if (quizSelected !== null) {
+          const lbW = 200, lbH = 44;
+          const lbX = W / 2 - lbW / 2, lbY = 600;
+          hitRects.push({ key: "quiz_next", x: lbX, y: lbY, w: lbW, h: lbH });
+
+          ctx.fillStyle = "#e0a02d";
+          ctx.beginPath();
+          ctx.roundRect(lbX, lbY, lbW, lbH, 8);
+          ctx.fill();
+
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#1e130a";
+          ctx.font = "bold 16px Georgia";
+          ctx.fillText("Lanjut →", W / 2, lbY + 28);
+        }
+      } else {
+        // Result Box
+        const rw = 580, rh = 280;
+        const rx = W / 2 - rw / 2, ry = 220;
+        drawGoldPanel(rx, ry, rw, rh, "KUIS SELESAI", null, true);
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffe7a9";
+        ctx.font = "bold 32px Georgia";
+        ctx.fillText(`SKOR AKHIR: ${quizScore} / 5`, W / 2, ry + 110);
+
+        ctx.fillStyle = "#d7cbba";
+        ctx.font = "18px Arial";
+        ctx.fillText("Luar biasa! Kamu memahami kisahnya dengan sangat baik.", W / 2, ry + 160);
+
+        hitRects.push({ key: "back_to_menu", x: W / 2 - 120, y: ry + 200, w: 240, h: 46 });
+        ctx.fillStyle = "#e0a02d";
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - 120, ry + 200, 240, 46, 8);
+        ctx.fill();
+
+        ctx.fillStyle = "#231810";
+        ctx.font = "bold 16px Georgia";
+        ctx.fillText("Kembali ke Menu Utama", W / 2, ry + 230);
+      }
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#a6917b";
+      ctx.font = "14px Arial";
+      ctx.fillText("Tekan M atau ESC untuk kembali ke menu", W / 2, 700);
+    }
+
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(" ");
+      let line = "";
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        const metrics = context.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          context.fillText(line, x, y);
+          line = words[n] + " ";
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      context.fillText(line, x, y);
+    }
+
+    /* =========================================================================
+       MAIN RENDER LOOP
+       ========================================================================= */
+    function render() {
+      hitRects = [];
+      ctx.clearRect(0, 0, W, H);
+
+      // Smooth puppet physics
+      puppetL.x += (puppetL.targetX - puppetL.x) * 0.15;
+      puppetL.y += (puppetL.targetY - puppetL.y) * 0.15;
+      puppetR.x += (puppetR.targetX - puppetR.x) * 0.15;
+      puppetR.y += (puppetR.targetY - puppetR.y) * 0.15;
+
+      if (phase === "menu") {
+        drawMainMenu();
+      } else if (phase === "characters") {
+        drawCharacterMenu();
+      } else if (phase === "physical_wayang") {
+        drawPhysicalWayangUI();
+      } else if (phase === "attack" || phase === "story") {
+        drawGameStage();
+      } else if (phase === "quiz") {
+        drawQuizUI();
+      } else {
+        drawMainMenu();
+      }
+
+      requestAnimationFrame(render);
     }
 
     /* =========================================================================
@@ -506,393 +1060,198 @@
       minTrackingConfidence: 0.5
     });
 
-    hands.onResults(onHandResults);
+    hands.onResults((results) => {
+      latestHandResult = results;
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) return;
 
-    let cameraInstance = null;
-    function initCamera() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        document.getElementById("pip-gesture-text").innerText = "Webcam tidak didukung";
-        return;
+      for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+        const lm = results.multiHandLandmarks[i];
+        const isFist = (lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y);
+        const palmX = lm[0].x;
+        const palmY = lm[0].y;
+
+        // Wayang Fisik coordinates (0 - 50 mm)
+        if (phase === "physical_wayang") {
+          physCtrl.targetX = (1 - palmX) * 50.0;
+          physCtrl.targetY = (1 - palmY) * 50.0;
+        }
+
+        // Puppet Stage coordinates
+        if (i === 0) {
+          puppetL.targetX = 1280 * (1 - palmX);
+          puppetL.targetY = 200 + (palmY * 380);
+          puppetL.state = isFist ? -1 : 1;
+        } else {
+          puppetR.targetX = 1280 * (1 - palmX);
+          puppetR.targetY = 200 + (palmY * 380);
+          puppetR.state = isFist ? -1 : 1;
+        }
       }
-      cameraInstance = new Camera(video, {
+    });
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const camera = new Camera(video, {
         onFrame: async () => {
-          if (cameraActive) {
-            await hands.send({ image: video });
-          }
+          if (cameraActive) await hands.send({ image: video });
         },
         width: 640,
         height: 480
       });
-      cameraInstance.start();
+      camera.start().catch(() => {});
     }
 
-    function onHandResults(results) {
-      pipCtx.clearRect(0, 0, pipCanvas.width, pipCanvas.height);
-      pipCtx.drawImage(results.image, 0, 0, pipCanvas.width, pipCanvas.height);
+    /* =========================================================================
+       INPUT & NAVIGATION EVENTS (Mouse & Keyboard)
+       ========================================================================= */
 
-      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-        document.getElementById("pip-gesture-text").innerText = "Tangan Tidak Terdeteksi";
-        return;
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const scaleY = H / rect.height;
+      mouseX = (e.clientX - rect.left) * scaleX;
+      mouseY = (e.clientY - rect.top) * scaleY;
+    });
+
+    canvas.addEventListener("click", () => {
+      for (const hr of hitRects) {
+        if (mouseX >= hr.x && mouseX <= hr.x + hr.w && mouseY >= hr.y && mouseY <= hr.y + hr.h) {
+          handleHit(hr);
+          return;
+        }
       }
+      // Click on canvas to advance story
+      if (phase === "story") {
+        advanceStory();
+      }
+    });
 
-      let statusMsg = [];
-
-      for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-        const landmarks = results.multiHandLandmarks[i];
-        const handedness = results.multiHandedness[i]?.label || (i === 0 ? "Left" : "Right");
-
-        // Draw skeleton in PIP
-        drawSkeleton(pipCtx, landmarks);
-
-        // Detect Gestures (Palm / Fist)
-        const isFist = checkIsFist(landmarks);
-        const gesture = isFist ? "KEPALA (SERANG)" : "TELAPAK (GERAK)";
-
-        // Hand Position normalized (0.0 - 1.0)
-        const palmX = landmarks[0].x;
-        const palmY = landmarks[0].y;
-
-        // Map to puppet movement
-        // Handedness in webcam mirror:
-        if (handedness === "Left" || (results.multiHandLandmarks.length === 1 && palmX < 0.5)) {
-          // Controls Left Puppet (Bima)
-          puppetLeft.targetX = 1280 * (1 - palmX);
-          puppetLeft.targetY = 200 + (palmY * 400);
-          puppetLeft.gesture = isFist ? "ATTACK" : "MOVE";
-          puppetLeft.armAngle = isFist ? -0.4 : 0;
-          statusMsg.push(`Kiri: ${gesture}`);
+    function handleHit(hr) {
+      if (hr.key === "story") {
+        phase = "story";
+        storySceneIdx = 0;
+        storyDiagIdx = -1;
+        stopBGM();
+        playBGM("03_musik_pembuka.mp3", 0.35);
+        playStoryStep();
+      } else if (hr.key === "attack") {
+        phase = "attack";
+        stopBGM();
+        playBGM("03_musik_pembuka.mp3", 0.35);
+      } else if (hr.key === "characters") {
+        phase = "characters";
+      } else if (hr.key === "physical") {
+        phase = "physical_wayang";
+      } else if (hr.key === "quiz") {
+        phase = "quiz";
+        quizIdx = 0;
+        quizScore = 0;
+        quizSelected = null;
+        quizFinished = false;
+      } else if (hr.key === "settings") {
+        phase = "settings";
+      } else if (hr.key === "back_to_menu") {
+        phase = "menu";
+        stopBGM();
+        stopVoice();
+        playBGM("menu_gamelan.mp3", 0.26);
+      } else if (hr.key.startsWith("pick_char_")) {
+        const idx = parseInt(hr.key.replace("pick_char_", ""));
+        if (characterSlot === 0) charLeftIdx = idx;
+        else charRightIdx = idx;
+      } else if (hr.key === "tab_slot_0") {
+        characterSlot = 0;
+      } else if (hr.key === "tab_slot_1") {
+        characterSlot = 1;
+      } else if (hr.key === "toggle_phys_start") {
+        physCtrl.running = !physCtrl.running;
+      } else if (hr.key === "toggle_phys_fs") {
+        if (!document.fullscreenElement) {
+          document.getElementById("app-container").requestFullscreen();
         } else {
-          // Controls Right Puppet (Arjuna)
-          puppetRight.targetX = 1280 * (1 - palmX);
-          puppetRight.targetY = 200 + (palmY * 400);
-          puppetRight.gesture = isFist ? "ATTACK" : "MOVE";
-          puppetRight.armAngle = isFist ? 0.4 : 0;
-          statusMsg.push(`Kanan: ${gesture}`);
+          document.exitFullscreen();
         }
-      }
-
-      document.getElementById("pip-gesture-text").innerText = statusMsg.join(" • ");
-    }
-
-    function checkIsFist(lm) {
-      // If fingertips are below/closer to wrist than PIP joints, it's a fist
-      const indexFold = lm[8].y > lm[6].y;
-      const middleFold = lm[12].y > lm[10].y;
-      const ringFold = lm[16].y > lm[14].y;
-      const pinkyFold = lm[20].y > lm[18].y;
-      return indexFold && middleFold && ringFold && pinkyFold;
-    }
-
-    function drawSkeleton(pctx, lm) {
-      pctx.strokeStyle = "#4cd964";
-      pctx.lineWidth = 3;
-      const connections = [
-        [0,1],[1,2],[2,3],[3,4],
-        [0,5],[5,6],[6,7],[7,8],
-        [5,9],[9,10],[10,11],[11,12],
-        [9,13],[13,14],[14,15],[15,16],
-        [13,17],[17,18],[18,19],[19,20],[0,17]
-      ];
-      for (const [a, b] of connections) {
-        pctx.beginPath();
-        pctx.moveTo(lm[a].x * pipCanvas.width, lm[a].y * pipCanvas.height);
-        pctx.lineTo(lm[b].x * pipCanvas.width, lm[b].y * pipCanvas.height);
-        pctx.stroke();
-      }
-      pctx.fillStyle = "#ffcc00";
-      for (const pt of lm) {
-        pctx.beginPath();
-        pctx.arc(pt.x * pipCanvas.width, pt.y * pipCanvas.height, 4, 0, Math.PI * 2);
-        pctx.fill();
-      }
-    }
-
-    /* =========================================================================
-       MAIN RENDER LOOP
-       ========================================================================= */
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Smooth puppet movement interpolation
-      puppetLeft.x += (puppetLeft.targetX - puppetLeft.x) * 0.15;
-      puppetLeft.y += (puppetLeft.targetY - puppetLeft.y) * 0.15;
-      puppetRight.x += (puppetRight.targetX - puppetRight.x) * 0.15;
-      puppetRight.y += (puppetRight.targetY - puppetRight.y) * 0.15;
-
-      // 1. Draw Background
-      drawBackground();
-
-      // 2. Draw Puppets (Wayang)
-      drawPuppet(puppetLeft);
-      drawPuppet(puppetRight);
-
-      // 3. Draw Curtains
-      drawCurtains();
-
-      requestAnimationFrame(render);
-    }
-
-    function drawBackground() {
-      let bgImg = images.bg_hutan_gua;
-      if (currentMode === "story" && storyData) {
-        const sc = storyData.scenes[currentSceneIdx];
-        if (sc && sc.background === "persimpangan") bgImg = images.bg_persimpangan;
-        else if (sc && sc.background === "jejak_kaki") bgImg = images.bg_jejak_kaki;
-      }
-      if (bgImg && bgImg.complete) {
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-      } else {
-        ctx.fillStyle = "#1e1510";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // Atmospheric Shadow Effect
-      const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 200, canvas.width/2, canvas.height/2, 700);
-      grad.addColorStop(0, "rgba(0,0,0,0)");
-      grad.addColorStop(1, "rgba(0,0,0,0.65)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    function drawPuppet(p) {
-      const img = images[p.imgKey];
-      if (!img || !img.complete) return;
-
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.scale(p.facing * p.scale, p.scale);
-
-      // Attack lunging rotation
-      if (p.gesture === "ATTACK") {
-        ctx.rotate(p.facing * 0.12);
-      }
-
-      // Puppet Shadow
-      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 12;
-
-      const pw = img.width * 0.7;
-      const ph = img.height * 0.7;
-      ctx.drawImage(img, -pw/2, -ph/2, pw, ph);
-
-      ctx.restore();
-    }
-
-    function drawCurtains() {
-      const curtainWidth = 140;
-      // Left curtain
-      const gradL = ctx.createLinearGradient(0, 0, curtainWidth, 0);
-      gradL.addColorStop(0, "rgba(90, 15, 15, 0.95)");
-      gradL.addColorStop(0.8, "rgba(50, 10, 10, 0.85)");
-      gradL.addColorStop(1, "rgba(30, 5, 5, 0)");
-      ctx.fillStyle = gradL;
-      ctx.fillRect(0, 0, curtainWidth, canvas.height);
-
-      // Right curtain
-      const gradR = ctx.createLinearGradient(canvas.width, 0, canvas.width - curtainWidth, 0);
-      gradR.addColorStop(0, "rgba(90, 15, 15, 0.95)");
-      gradR.addColorStop(0.8, "rgba(50, 10, 10, 0.85)");
-      gradR.addColorStop(1, "rgba(30, 5, 5, 0)");
-      ctx.fillStyle = gradR;
-      ctx.fillRect(canvas.width - curtainWidth, 0, curtainWidth, canvas.height);
-    }
-
-    /* =========================================================================
-       STORY FLOW CONTROLLER
-       ========================================================================= */
-    function startStory() {
-      currentMode = "story";
-      currentSceneIdx = 0;
-      currentDialogueIdx = -1;
-      document.getElementById("menu-overlay").classList.add("hidden");
-      document.getElementById("subtitle-box").classList.remove("hidden");
-      document.getElementById("hud-status").innerText = "Kisah: Adegan 1";
-      playBGM("03_musik_pembuka.mp3");
-      loadSceneStep();
-    }
-
-    function loadSceneStep() {
-      if (!storyData || !storyData.scenes[currentSceneIdx]) {
-        // Story finished -> launch quiz
-        startQuiz();
-        return;
-      }
-      const scene = storyData.scenes[currentSceneIdx];
-      document.getElementById("hud-status").innerText = `Adegan ${scene.id}: ${scene.title}`;
-
-      if (currentDialogueIdx === -1) {
-        // Narration
-        document.getElementById("speaker-tag").innerText = "Narator";
-        document.getElementById("dialogue-text").innerText = scene.narration_text;
-        playVoice(scene.narration);
-      } else {
-        // Dialogue
-        const diag = scene.dialogues[currentDialogueIdx];
-        if (diag) {
-          const [speaker, text, audio] = diag;
-          document.getElementById("speaker-tag").innerText = speaker;
-          document.getElementById("dialogue-text").innerText = text;
-          playVoice(audio);
-
-          // Animate speaking puppet
-          if (speaker.toLowerCase().includes("bima")) {
-            puppetLeft.targetY -= 20;
-          } else {
-            puppetRight.targetY -= 20;
-          }
+      } else if (hr.key.startsWith("jog_")) {
+        physCtrl.targetX = Math.max(0, Math.min(50, physCtrl.targetX + hr.deltaX));
+        physCtrl.targetY = Math.max(0, Math.min(50, physCtrl.targetY + hr.deltaY));
+      } else if (hr.key.startsWith("spd_")) {
+        physCtrl.feedrate = Math.max(50, Math.min(1200, physCtrl.feedrate + hr.delta));
+      } else if (hr.key === "toggle_stepper_mode") {
+        physCtrl.stepperMode = (physCtrl.stepperMode === "smart" ? "2_hands" : "smart");
+      } else if (hr.key.startsWith("quiz_opt_")) {
+        quizSelected = parseInt(hr.key.replace("quiz_opt_", ""));
+      } else if (hr.key === "quiz_next") {
+        if (quizSelected === QUIZ_QUESTIONS[quizIdx].answer) {
+          quizScore++;
+        }
+        if (quizIdx < QUIZ_QUESTIONS.length - 1) {
+          quizIdx++;
+          quizSelected = null;
+        } else {
+          quizFinished = true;
         }
       }
     }
 
-    function nextStoryStep() {
-      if (currentMode !== "story" || !storyData) return;
-      const scene = storyData.scenes[currentSceneIdx];
-
-      if (currentDialogueIdx === -1) {
-        currentDialogueIdx = 0;
-        loadSceneStep();
-      } else if (currentDialogueIdx < scene.dialogues.length - 1) {
-        currentDialogueIdx++;
-        loadSceneStep();
+    function playStoryStep() {
+      if (!storyData || !storyData.scenes[storySceneIdx]) return;
+      const sc = storyData.scenes[storySceneIdx];
+      if (storyDiagIdx === -1) {
+        playVoice(sc.narration);
       } else {
-        // Next Scene
-        currentSceneIdx++;
-        currentDialogueIdx = -1;
-        loadSceneStep();
+        const diag = sc.dialogues[storyDiagIdx];
+        if (diag) playVoice(diag[2]);
       }
     }
 
-    /* =========================================================================
-       QUIZ SYSTEM
-       ========================================================================= */
-    let currentQuizIdx = 0;
-    let quizScore = 0;
-
-    function startQuiz() {
-      currentMode = "quiz";
-      currentQuizIdx = 0;
-      quizScore = 0;
-      document.getElementById("subtitle-box").classList.add("hidden");
-      document.getElementById("menu-overlay").classList.add("hidden");
-      document.getElementById("quiz-overlay").classList.remove("hidden");
-      document.getElementById("hud-status").innerText = "Kuis Budaya Wayang";
-      showQuizQuestion();
-    }
-
-    function showQuizQuestion() {
-      const q = QUIZ_DATA[currentQuizIdx];
-      document.getElementById("quiz-progress").innerText = `SOAL ${currentQuizIdx + 1} DARI ${QUIZ_DATA.length}`;
-      document.getElementById("quiz-question").innerText = q.question;
-      document.getElementById("quiz-feedback").innerText = "";
-      document.getElementById("btn-quiz-next").style.display = "none";
-
-      const list = document.getElementById("quiz-options-list");
-      list.innerHTML = "";
-      q.options.forEach((opt, idx) => {
-        const btn = document.createElement("button");
-        btn.className = "quiz-opt-btn";
-        btn.innerText = `${String.fromCharCode(65 + idx)}. ${opt}`;
-        btn.onclick = () => selectQuizAnswer(idx, btn);
-        list.appendChild(btn);
-      });
-    }
-
-    function selectQuizAnswer(chosenIdx, selectedBtn) {
-      const q = QUIZ_DATA[currentQuizIdx];
-      const allBtns = document.querySelectorAll(".quiz-opt-btn");
-      allBtns.forEach(b => b.style.pointerEvents = "none");
-
-      if (chosenIdx === q.answer) {
-        selectedBtn.classList.add("correct");
-        document.getElementById("quiz-feedback").innerText = "Benar! Jawabanmu tepat sekali. ✨";
-        document.getElementById("quiz-feedback").style.color = "#4cd964";
-        quizScore++;
+    function advanceStory() {
+      if (!storyData) return;
+      const sc = storyData.scenes[storySceneIdx];
+      if (storyDiagIdx === -1) {
+        storyDiagIdx = 0;
+        playStoryStep();
+      } else if (storyDiagIdx < sc.dialogues.length - 1) {
+        storyDiagIdx++;
+        playStoryStep();
+      } else if (storySceneIdx < storyData.scenes.length - 1) {
+        storySceneIdx++;
+        storyDiagIdx = -1;
+        playStoryStep();
       } else {
-        selectedBtn.classList.add("wrong");
-        allBtns[q.answer].classList.add("correct");
-        document.getElementById("quiz-feedback").innerText = "Kurang tepat, perhatikan jalan ceritanya.";
-        document.getElementById("quiz-feedback").style.color = "#ff3b30";
+        // Story tamat -> Masuk Kuis
+        phase = "quiz";
+        quizIdx = 0;
+        quizScore = 0;
+        quizSelected = null;
+        quizFinished = false;
       }
-
-      document.getElementById("btn-quiz-next").style.display = "block";
     }
 
-    document.getElementById("btn-quiz-next").onclick = () => {
-      if (currentQuizIdx < QUIZ_DATA.length - 1) {
-        currentQuizIdx++;
-        showQuizQuestion();
-      } else {
-        // Quiz Finished
-        document.getElementById("quiz-progress").innerText = "HASIL KUIS SELESAI";
-        document.getElementById("quiz-question").innerText = `Skor Akhir: ${quizScore} / ${QUIZ_DATA.length}`;
-        document.getElementById("quiz-options-list").innerHTML = `
-          <div style="font-size: 18px; color: var(--gold-light); margin: 20px 0;">
-            ${quizScore >= 4 ? "Luar biasa! Pemahamanmu terhadap kisah wayang sangat mendalam." : "Bagus! Terus lestarikan dan pelajari kekayaan budaya Nusantara."}
-          </div>
-        `;
-        document.getElementById("btn-quiz-next").innerText = "Kembali ke Menu Utama";
-        document.getElementById("btn-quiz-next").onclick = () => {
-          document.getElementById("quiz-overlay").classList.add("hidden");
-          document.getElementById("menu-overlay").classList.remove("hidden");
-          currentMode = "menu";
-          document.getElementById("btn-quiz-next").innerText = "Lanjut Pertanyaan →";
-        };
-      }
-    };
-
-    /* =========================================================================
-       EVENT LISTENERS
-       ========================================================================= */
-    document.getElementById("btn-start-story").onclick = startStory;
-
-    document.getElementById("btn-start-freeplay").onclick = () => {
-      currentMode = "freeplay";
-      document.getElementById("menu-overlay").classList.add("hidden");
-      document.getElementById("subtitle-box").classList.add("hidden");
-      document.getElementById("hud-status").innerText = "Mode Bebas / Tarung (Gestur Tangan Aktif)";
-      playBGM("menu_gamelan.mp3");
-    };
-
-    document.getElementById("btn-start-quiz").onclick = startQuiz;
-
-    document.getElementById("btn-back-menu").onclick = () => {
-      currentMode = "menu";
-      document.getElementById("menu-overlay").classList.remove("hidden");
-      document.getElementById("subtitle-box").classList.add("hidden");
-      document.getElementById("quiz-overlay").classList.add("hidden");
-      document.getElementById("hud-status").innerText = "Menu Utama";
-      bgmPlayer.pause();
-      voicePlayer.pause();
-    };
-
-    document.getElementById("btn-toggle-cam").onclick = () => {
-      cameraActive = !cameraActive;
-      document.getElementById("btn-toggle-cam").innerText = `📷 Kamera Gesture: ${cameraActive ? "ON" : "OFF"}`;
-      document.getElementById("camera-pip").style.display = cameraActive ? "block" : "none";
-    };
-
-    // Click/Space to advance story
     window.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        nextStoryStep();
+      if (e.key === "Escape" || e.key.toLowerCase() === "m") {
+        phase = "menu";
+        stopBGM();
+        stopVoice();
+        playBGM("menu_gamelan.mp3", 0.26);
+      } else if (phase === "menu") {
+        if (e.key === "1") handleHit({ key: "story" });
+        else if (e.key === "2") handleHit({ key: "attack" });
+        else if (e.key === "3") handleHit({ key: "characters" });
+        else if (e.key === "4") handleHit({ key: "physical" });
+        else if (e.key === "5") handleHit({ key: "quiz" });
+        else if (e.key === "6") handleHit({ key: "settings" });
+      } else if (phase === "story" && e.code === "Space") {
+        advanceStory();
       }
     });
 
-    document.getElementById("stage-canvas").addEventListener("click", () => {
-      if (currentMode === "story") {
-        nextStoryStep();
+    // Mulai Gamelan di Menu
+    window.addEventListener("click", () => {
+      if (phase === "menu" && bgm.paused) {
+        playBGM("menu_gamelan.mp3", 0.26);
       }
-    });
+    }, { once: true });
 
-    document.getElementById("subtitle-box").addEventListener("click", () => {
-      if (currentMode === "story") {
-        nextStoryStep();
-      }
-    });
-
-    // START
-    initCamera();
+    // Mulai Render Loop
     render();
   </script>
 </body>
