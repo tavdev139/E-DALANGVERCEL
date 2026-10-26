@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Bima dan Arjuna – Janji di Tengah Hutan (e-DALANG)</title>
   <link rel="icon" href="assets/bima_new.png" type="image/png">
   <!-- MediaPipe Hands & Camera Utils -->
@@ -15,53 +15,80 @@
       margin: 0;
       padding: 0;
       user-select: none;
+      -webkit-user-select: none;
     }
-    body {
-      background-color: #050403;
-      color: #fff;
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #000;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     #app-container {
       position: relative;
-      width: 1280px;
-      height: 720px;
-      max-width: 100vw;
-      max-height: 56.25vw;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       background: #000;
-      box-shadow: 0 0 50px rgba(0,0,0,0.9);
       overflow: hidden;
     }
 
-    /* Canvas 1280x720 persis seperti Pygame logical canvas */
+    /* Canvas yang selalu mengisi layar penuh dengan aspect ratio 16:9 pas */
     #main-canvas {
-      width: 100%;
-      height: 100%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       display: block;
-      cursor: default;
+      cursor: pointer;
+      box-shadow: 0 0 50px rgba(0,0,0,0.95);
     }
 
-    /* Video tersembunyi untuk input webcam MediaPipe */
+    /* Video element tersembunyi */
     #webcam-video {
       display: none;
+    }
+
+    /* Tombol Fullscreen mengambang di pojok kanan atas */
+    #fs-btn {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      z-index: 999;
+      background: rgba(35, 24, 16, 0.85);
+      border: 1px solid #da9f30;
+      color: #ffe8b0;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s;
+    }
+    #fs-btn:hover {
+      background: #da9f30;
+      color: #1a1008;
     }
   </style>
 </head>
 <body>
 
   <div id="app-container">
+    <button id="fs-btn">⛶ Layar Penuh (F11)</button>
     <canvas id="main-canvas" width="1280" height="720"></canvas>
     <video id="webcam-video" playsinline></video>
   </div>
 
   <script>
     /* =========================================================================
-       E-DALANG 1:1 REPLICA ENGINE (Pygame exact layout in HTML5 Canvas)
+       E-DALANG 1:1 REPLICA ENGINE (FULLSCREEN RESPONSIVE + AUTO-SCALING)
        ========================================================================= */
 
     const canvas = document.getElementById("main-canvas");
@@ -69,6 +96,30 @@
     const video = document.getElementById("webcam-video");
     const W = 1280;
     const H = 720;
+
+    // Auto-fit Canvas to 100% Fullscreen Screen
+    function resizeCanvas() {
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      const scale = Math.min(winW / W, winH / H);
+      canvas.style.width = `${W * scale}px`;
+      canvas.style.height = `${H * scale}px`;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // Fullscreen Toggle
+    document.getElementById("fs-btn").addEventListener("click", () => {
+      toggleFullscreen();
+    });
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
 
     // Audio System
     const bgm = new Audio();
@@ -134,27 +185,32 @@
       {
         question: "Mengapa Bima dan Arjuna berhenti di persimpangan?",
         options: ["Mencari makanan", "Menentukan jalan yang benar", "Mencari rumah", "Menunggu hujan"],
-        answer: 1
+        answer: 1,
+        explanation: "Mereka berhenti karena harus menentukan jalan yang tepat untuk melanjutkan perjalanan."
       },
       {
         question: "Jalan mana yang awalnya dipilih Bima?",
         options: ["Jalan kanan", "Jalan tengah", "Jalan kiri", "Jalan belakang"],
-        answer: 2
+        answer: 2,
+        explanation: "Bima awalnya memilih jalan kiri sebelum mereka mencari petunjuk lebih lanjut."
       },
       {
         question: "Apa yang dilakukan Bima dan Arjuna untuk menentukan jalan?",
         options: ["Bertengkar", "Mencari petunjuk bersama", "Berpisah", "Menunggu orang lain"],
-        answer: 1
+        answer: 1,
+        explanation: "Keduanya mencari petunjuk bersama agar dapat menentukan arah perjalanan dengan bijak."
       },
       {
         question: "Petunjuk apa yang mereka temukan?",
         options: ["Peta", "Jejak kaki", "Kompas", "Jembatan"],
-        answer: 1
+        answer: 1,
+        explanation: "Jejak kaki menjadi petunjuk yang membantu mereka memilih arah di persimpangan."
       },
       {
         question: "Apa pesan utama dari kisah Bima dan Arjuna?",
         options: ["Selalu mengikuti pendapat sendiri", "Perbedaan harus dihindari", "Saling menghargai dan bekerja sama", "Jangan bepergian ke hutan"],
-        answer: 2
+        answer: 2,
+        explanation: "Kisah ini menekankan pentingnya saling menghargai, bekerja sama, dan mengambil keputusan bersama."
       }
     ];
 
@@ -167,11 +223,12 @@
     let charRightIdx = 1; // Arjuna
     let characterSlot = 0; // 0=Player 1, 1=Player 2
 
+    // Settings
+    let settingPOV = true;
+    let settingMusic = true;
+
     // Mouse Tracking
     let mouseX = 0, mouseY = 0;
-    let hoveredBtn = null;
-
-    // Interactive clickable rectangles
     let hitRects = [];
 
     // Puppet Positions for Story & Attack
@@ -203,7 +260,6 @@
     let quizFinished = false;
 
     // Camera Surface & MediaPipe Hands
-    let latestHandResult = null;
     let cameraActive = true;
 
     /* =========================================================================
@@ -225,7 +281,7 @@
 
       // Border outer gold
       ctx.strokeStyle = selected ? "#eeb546" : "#9a6927";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = selected ? 3 : 2;
       ctx.beginPath();
       ctx.roundRect(x, y, w, h, 10);
       ctx.stroke();
@@ -240,11 +296,13 @@
       if (title) {
         ctx.fillStyle = "#ffe8b0";
         ctx.font = "bold 26px Georgia";
+        ctx.textAlign = "left";
         ctx.fillText(title, x + 28, y + 36);
       }
       if (subtitle) {
         ctx.fillStyle = "#d7cbba";
         ctx.font = "14px Arial";
+        ctx.textAlign = "left";
         ctx.fillText(subtitle, x + 28, y + 60);
       }
     }
@@ -493,9 +551,101 @@
     }
 
     /* =========================================================================
-       3. PHASE: WAYANG FISIK (1:1 PANGGUNG PENGATURAN MOTOR STEPPER & CAMERA)
+       3. PHASE: WAYANG FISIK (DENGAN MODE LAYAR PENUH POV)
        ========================================================================= */
     function drawPhysicalWayangUI() {
+      // MODE A: FULLSCREEN POV KAMERA
+      if (physCtrl.fullscreenPov) {
+        ctx.fillStyle = "#0c0a08";
+        ctx.fillRect(0, 0, W, H);
+
+        if (video.readyState >= 2) {
+          ctx.save();
+          ctx.translate(W, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, 0, W, H);
+          ctx.restore();
+        }
+
+        drawCurtains(100);
+
+        // Top HUD Bar
+        ctx.fillStyle = "rgba(16, 12, 10, 0.82)";
+        ctx.fillRect(0, 0, W, 58);
+        ctx.strokeStyle = "#463223";
+        ctx.strokeRect(0, 0, W, 58);
+
+        // Left Chip: Stepper X
+        drawGoldPanel(20, 8, 220, 42, null, null, false);
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#bea582";
+        ctx.font = "bold 11px Arial";
+        ctx.fillText("STEPPER X (TANGAN KIRI)", 32, 22);
+        ctx.fillStyle = "#ffe18c";
+        ctx.font = "bold 14px Arial";
+        ctx.fillText(`X: ${physCtrl.targetX.toFixed(1)} mm`, 32, 38);
+
+        // Right Chip: Stepper Y
+        drawGoldPanel(W - 240, 8, 220, 42, null, null, false);
+        ctx.fillStyle = "#bea582";
+        ctx.font = "bold 11px Arial";
+        ctx.fillText("STEPPER Y (TANGAN KANAN)", W - 228, 22);
+        ctx.fillStyle = "#ffe18c";
+        ctx.font = "bold 14px Arial";
+        ctx.fillText(`Y: ${physCtrl.targetY.toFixed(1)} mm`, W - 228, 38);
+
+        // Center status
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#f5d791";
+        ctx.font = "bold 15px Georgia";
+        ctx.fillText(`Kecepatan: ${physCtrl.feedrate} mm/min  •  Mode: ${physCtrl.stepperMode === "smart" ? "Smart (1/2 Tangan)" : "2 Tangan (X/Y)"}`, W / 2, 25);
+        ctx.fillStyle = "#4cd964";
+        ctx.font = "12px Arial";
+        ctx.fillText(`Status GRBL: G1 X${physCtrl.targetX.toFixed(1)} Y${physCtrl.targetY.toFixed(1)}`, W / 2, 45);
+
+        // Crosshair reticle
+        const tx = (physCtrl.targetX / 50.0) * W;
+        const ty = (physCtrl.targetY / 50.0) * H;
+        ctx.strokeStyle = "#ffd265";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(tx, ty, 16, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tx - 22, ty); ctx.lineTo(tx + 22, ty);
+        ctx.moveTo(tx, ty - 22); ctx.lineTo(tx, ty + 22);
+        ctx.stroke();
+
+        // Bottom HUD Bar
+        ctx.fillStyle = "rgba(16, 12, 10, 0.82)";
+        ctx.fillRect(0, H - 58, W, 58);
+
+        hitRects.push({ key: "toggle_phys_pov", x: 20, y: H - 48, w: 180, h: 38 });
+        ctx.fillStyle = "#281c12";
+        ctx.beginPath();
+        ctx.roundRect(20, H - 48, 180, 38, 8);
+        ctx.fill();
+        ctx.strokeStyle = "#da9f30";
+        ctx.stroke();
+        ctx.fillStyle = "#ffe8b0";
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("⛶ Keluar POV (F)", 110, H - 24);
+
+        // Start / Stop
+        hitRects.push({ key: "toggle_phys_start", x: W / 2 - 120, y: H - 48, w: 240, h: 38 });
+        ctx.fillStyle = physCtrl.running ? "#9a2b1b" : "#da9f30";
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - 120, H - 48, 240, 38, 8);
+        ctx.fill();
+        ctx.fillStyle = physCtrl.running ? "#fff" : "#1a1008";
+        ctx.font = "bold 15px Georgia";
+        ctx.fillText(physCtrl.running ? "■  Hentikan (SPACE)" : "▶  Mulai Pertunjukan (SPACE)", W / 2, H - 24);
+
+        return;
+      }
+
+      // MODE B: PANGGUNG STANDAR & SIDEBAR
       // 1. Top Navbar
       ctx.fillStyle = "rgba(18, 14, 12, 0.98)";
       ctx.fillRect(0, 0, W, 56);
@@ -539,7 +689,7 @@
       if (video.readyState >= 2) {
         ctx.save();
         ctx.translate(stageW, 56);
-        ctx.scale(-1, 1); // Mirror
+        ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, stageW, stageH);
         ctx.restore();
       } else {
@@ -547,7 +697,6 @@
         ctx.fillRect(0, 56, stageW, stageH);
       }
 
-      // Red Curtains Frame
       drawCurtains(100);
 
       // Top Chips overlay on stage
@@ -580,7 +729,6 @@
         ctx.fillText("Hubungkan port COM di panel kanan, lalu mulai pertunjukan.", stageW / 2, 320);
         ctx.fillText("Tangan kiri menggerakkan wayang kiri, tangan kanan wayang kanan.", stageW / 2, 345);
 
-        // Big Gold Start Button
         const sbW = 240, sbH = 48;
         const sbX = stageW / 2 - sbW / 2, sbY = 380;
         hitRects.push({ key: "toggle_phys_start", x: sbX, y: sbY, w: sbW, h: sbH });
@@ -594,7 +742,6 @@
         ctx.font = "bold 18px Georgia";
         ctx.fillText("▶  Mulai Pertunjukan", stageW / 2, sbY + 30);
       } else {
-        // Red Stop Button
         const sbW = 240, sbH = 44;
         const sbX = stageW / 2 - sbW / 2, sbY = stageH - 20;
         hitRects.push({ key: "toggle_phys_start", x: sbX, y: sbY, w: sbW, h: sbH });
@@ -625,7 +772,7 @@
       ctx.fillText("← Menu Utama", 82, H - 16);
 
       // Fullscreen POV Button
-      hitRects.push({ key: "toggle_phys_fs", x: 160, y: H - 34, w: 170, h: 28 });
+      hitRects.push({ key: "toggle_phys_pov", x: 160, y: H - 34, w: 170, h: 28 });
       ctx.fillStyle = "#281c12";
       ctx.beginPath();
       ctx.roundRect(160, H - 34, 170, 28, 6);
@@ -703,7 +850,6 @@
       // Card 3: Pengaturan Kecepatan Motor Stepper
       drawGoldPanel(sideX + 14, 390, sidebarW - 28, H - 400, "Pengaturan Kecepatan", `Speed: ${physCtrl.feedrate} mm/min`, false);
 
-      // Speed Adjust Buttons (-50, -10, +10, +50)
       const spdBtns = [-50, -10, 10, 50];
       spdBtns.forEach((delta, idx) => {
         const bx = sideX + 32 + idx * 76;
@@ -720,7 +866,6 @@
         ctx.fillText((delta > 0 ? `+${delta}` : `${delta}`), bx + 34, 480);
       });
 
-      // Mode Smart Toggle Button
       hitRects.push({ key: "toggle_stepper_mode", x: sideX + 32, y: 510, w: 300, h: 36 });
       ctx.fillStyle = "#352416";
       ctx.beginPath();
@@ -748,7 +893,6 @@
         ctx.drawImage(bgImg, 0, 0, W, H);
       }
 
-      // Draw Curtains
       drawCurtains(120);
 
       // Draw Left Character
@@ -852,20 +996,17 @@
       ctx.fillStyle = "rgba(5, 4, 3, 0.75)";
       ctx.fillRect(0, 0, W, H);
 
-      // Frame
       ctx.strokeStyle = "#a06d27";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(14, 14, W - 28, H - 28, 16);
       ctx.stroke();
 
-      // Title
       ctx.textAlign = "center";
       ctx.fillStyle = "#ffe09b";
       ctx.font = "bold 44px Georgia";
       ctx.fillText("KUIS PENONTON", W / 2, 65);
 
-      // Side Characters (Bima kiri, Arjuna kanan)
       const bimaImg = images.bima;
       if (bimaImg && bimaImg.complete) {
         ctx.drawImage(bimaImg, 40, 220, 160, 320);
@@ -878,7 +1019,6 @@
       if (!quizFinished) {
         const q = QUIZ_QUESTIONS[quizIdx];
 
-        // Rail Progress
         ctx.fillStyle = "#181009";
         ctx.beginPath();
         ctx.roundRect(W / 2 - 200, 95, 400, 48, 20);
@@ -890,7 +1030,6 @@
         ctx.font = "bold 14px Arial";
         ctx.fillText("PERJALANAN CERITA", W / 2, 115);
 
-        // Progress Dots
         for (let i = 0; i < QUIZ_QUESTIONS.length; i++) {
           const dx = (W / 2 - 140) + i * 70;
           ctx.beginPath();
@@ -901,13 +1040,11 @@
           ctx.stroke();
         }
 
-        // Question Number Box
         drawGoldPanel(W / 2 - 60, 155, 120, 36, null, null, false);
         ctx.fillStyle = "#ffe7a9";
         ctx.font = "bold 15px Arial";
         ctx.fillText(`0${quizIdx + 1} / 05`, W / 2, 178);
 
-        // Question Card
         const qw = 660, qh = 100;
         const qx = W / 2 - qw / 2, qy = 210;
         ctx.fillStyle = "#231810";
@@ -921,7 +1058,6 @@
         ctx.font = "bold 20px Georgia";
         wrapText(ctx, q.question, qx + 30, qy + 40, qw - 60, 28);
 
-        // Option Buttons
         const optW = 660, optH = 50, optGap = 12;
         const optY0 = 330;
 
@@ -951,7 +1087,6 @@
           ctx.fillText(q.options[i], qx + 55, oy + 32);
         }
 
-        // Lanjut Button
         if (quizSelected !== null) {
           const lbW = 200, lbH = 44;
           const lbX = W / 2 - lbW / 2, lbY = 600;
@@ -968,7 +1103,6 @@
           ctx.fillText("Lanjut →", W / 2, lbY + 28);
         }
       } else {
-        // Result Box
         const rw = 580, rh = 280;
         const rx = W / 2 - rw / 2, ry = 220;
         drawGoldPanel(rx, ry, rw, rh, "KUIS SELESAI", null, true);
@@ -999,6 +1133,54 @@
       ctx.fillText("Tekan M atau ESC untuk kembali ke menu", W / 2, 700);
     }
 
+    /* =========================================================================
+       6. PHASE: PENGATURAN (1:1 Pygame Settings UI)
+       ========================================================================= */
+    function drawSettingsUI() {
+      if (images.hutan_sore && images.hutan_sore.complete) {
+        ctx.drawImage(images.hutan_sore, 0, 0, W, H);
+      }
+      ctx.fillStyle = "rgba(5, 4, 3, 0.75)";
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffde9d";
+      ctx.font = "bold 52px Georgia";
+      ctx.fillText("PENGATURAN", W / 2, 95);
+
+      const rows = [
+        { name: "POV TANGAN", desc: "Jendela kamera preview gestur tangan", on: settingPOV, key: "toggle_setting_pov" },
+        { name: "MUSIK", desc: "Musik latar gamelan & mode story", on: settingMusic, key: "toggle_setting_music" },
+      ];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const y = 200 + i * 135;
+        const w = 660, h = 92;
+        const x = W / 2 - w / 2;
+
+        hitRects.push({ key: r.key, x, y, w, h });
+        drawGoldPanel(x, y, w, h, r.name, r.desc, false);
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = r.on ? "#ffe1a0" : "#a6917b";
+        ctx.font = "bold 20px Arial";
+        ctx.fillText(r.on ? "AKTIF" : "NONAKTIF", x + w - 30, y + 54);
+      }
+
+      // Back Button
+      hitRects.push({ key: "back_to_menu", x: 45, y: H - 75, w: 180, h: 48 });
+      drawGoldPanel(45, H - 75, 180, 48, null, null, false);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffe29e";
+      ctx.font = "bold 18px Georgia";
+      ctx.fillText("KEMBALI", 135, H - 44);
+
+      ctx.fillStyle = "#a6917b";
+      ctx.font = "14px Arial";
+      ctx.fillText("Klik pengaturan untuk mengubah • ESC kembali", W / 2, H - 35);
+    }
+
     function wrapText(context, text, x, y, maxWidth, lineHeight) {
       const words = text.split(" ");
       let line = "";
@@ -1023,7 +1205,6 @@
       hitRects = [];
       ctx.clearRect(0, 0, W, H);
 
-      // Smooth puppet physics
       puppetL.x += (puppetL.targetX - puppetL.x) * 0.15;
       puppetL.y += (puppetL.targetY - puppetL.y) * 0.15;
       puppetR.x += (puppetR.targetX - puppetR.x) * 0.15;
@@ -1039,6 +1220,8 @@
         drawGameStage();
       } else if (phase === "quiz") {
         drawQuizUI();
+      } else if (phase === "settings") {
+        drawSettingsUI();
       } else {
         drawMainMenu();
       }
@@ -1061,7 +1244,6 @@
     });
 
     hands.onResults((results) => {
-      latestHandResult = results;
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) return;
 
       for (let i = 0; i < results.multiHandLandmarks.length; i++) {
@@ -1070,13 +1252,11 @@
         const palmX = lm[0].x;
         const palmY = lm[0].y;
 
-        // Wayang Fisik coordinates (0 - 50 mm)
         if (phase === "physical_wayang") {
           physCtrl.targetX = (1 - palmX) * 50.0;
           physCtrl.targetY = (1 - palmY) * 50.0;
         }
 
-        // Puppet Stage coordinates
         if (i === 0) {
           puppetL.targetX = 1280 * (1 - palmX);
           puppetL.targetY = 200 + (palmY * 380);
@@ -1104,22 +1284,30 @@
        INPUT & NAVIGATION EVENTS (Mouse & Keyboard)
        ========================================================================= */
 
-    canvas.addEventListener("mousemove", (e) => {
+    function getLogicalMouse(e) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = W / rect.width;
       const scaleY = H / rect.height;
-      mouseX = (e.clientX - rect.left) * scaleX;
-      mouseY = (e.clientY - rect.top) * scaleY;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    canvas.addEventListener("mousemove", (e) => {
+      const m = getLogicalMouse(e);
+      mouseX = m.x;
+      mouseY = m.y;
     });
 
-    canvas.addEventListener("click", () => {
+    canvas.addEventListener("click", (e) => {
+      const m = getLogicalMouse(e);
       for (const hr of hitRects) {
-        if (mouseX >= hr.x && mouseX <= hr.x + hr.w && mouseY >= hr.y && mouseY <= hr.y + hr.h) {
+        if (m.x >= hr.x && m.x <= hr.x + hr.w && m.y >= hr.y && m.y <= hr.y + hr.h) {
           handleHit(hr);
           return;
         }
       }
-      // Click on canvas to advance story
       if (phase === "story") {
         advanceStory();
       }
@@ -1131,12 +1319,12 @@
         storySceneIdx = 0;
         storyDiagIdx = -1;
         stopBGM();
-        playBGM("03_musik_pembuka.mp3", 0.35);
+        if (settingMusic) playBGM("03_musik_pembuka.mp3", 0.35);
         playStoryStep();
       } else if (hr.key === "attack") {
         phase = "attack";
         stopBGM();
-        playBGM("03_musik_pembuka.mp3", 0.35);
+        if (settingMusic) playBGM("03_musik_pembuka.mp3", 0.35);
       } else if (hr.key === "characters") {
         phase = "characters";
       } else if (hr.key === "physical") {
@@ -1153,7 +1341,7 @@
         phase = "menu";
         stopBGM();
         stopVoice();
-        playBGM("menu_gamelan.mp3", 0.26);
+        if (settingMusic) playBGM("menu_gamelan.mp3", 0.26);
       } else if (hr.key.startsWith("pick_char_")) {
         const idx = parseInt(hr.key.replace("pick_char_", ""));
         if (characterSlot === 0) charLeftIdx = idx;
@@ -1164,12 +1352,8 @@
         characterSlot = 1;
       } else if (hr.key === "toggle_phys_start") {
         physCtrl.running = !physCtrl.running;
-      } else if (hr.key === "toggle_phys_fs") {
-        if (!document.fullscreenElement) {
-          document.getElementById("app-container").requestFullscreen();
-        } else {
-          document.exitFullscreen();
-        }
+      } else if (hr.key === "toggle_phys_pov") {
+        physCtrl.fullscreenPov = !physCtrl.fullscreenPov;
       } else if (hr.key.startsWith("jog_")) {
         physCtrl.targetX = Math.max(0, Math.min(50, physCtrl.targetX + hr.deltaX));
         physCtrl.targetY = Math.max(0, Math.min(50, physCtrl.targetY + hr.deltaY));
@@ -1189,6 +1373,12 @@
         } else {
           quizFinished = true;
         }
+      } else if (hr.key === "toggle_setting_pov") {
+        settingPOV = !settingPOV;
+      } else if (hr.key === "toggle_setting_music") {
+        settingMusic = !settingMusic;
+        if (!settingMusic) stopBGM();
+        else if (phase === "menu") playBGM("menu_gamelan.mp3", 0.26);
       }
     }
 
@@ -1217,7 +1407,6 @@
         storyDiagIdx = -1;
         playStoryStep();
       } else {
-        // Story tamat -> Masuk Kuis
         phase = "quiz";
         quizIdx = 0;
         quizScore = 0;
@@ -1228,10 +1417,23 @@
 
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" || e.key.toLowerCase() === "m") {
-        phase = "menu";
-        stopBGM();
-        stopVoice();
-        playBGM("menu_gamelan.mp3", 0.26);
+        if (phase === "physical_wayang" && physCtrl.fullscreenPov) {
+          physCtrl.fullscreenPov = false;
+        } else {
+          phase = "menu";
+          stopBGM();
+          stopVoice();
+          if (settingMusic) playBGM("menu_gamelan.mp3", 0.26);
+        }
+      } else if (e.key.toLowerCase() === "f") {
+        if (phase === "physical_wayang") {
+          physCtrl.fullscreenPov = !physCtrl.fullscreenPov;
+        } else {
+          toggleFullscreen();
+        }
+      } else if (e.key === "F11") {
+        e.preventDefault();
+        toggleFullscreen();
       } else if (phase === "menu") {
         if (e.key === "1") handleHit({ key: "story" });
         else if (e.key === "2") handleHit({ key: "attack" });
@@ -1241,17 +1443,19 @@
         else if (e.key === "6") handleHit({ key: "settings" });
       } else if (phase === "story" && e.code === "Space") {
         advanceStory();
+      } else if (phase === "physical_wayang") {
+        if (e.code === "Space") physCtrl.running = !physCtrl.running;
+        else if (e.key === "ArrowUp") physCtrl.feedrate = Math.min(1200, physCtrl.feedrate + 50);
+        else if (e.key === "ArrowDown") physCtrl.feedrate = Math.max(50, physCtrl.feedrate - 50);
       }
     });
 
-    // Mulai Gamelan di Menu
     window.addEventListener("click", () => {
-      if (phase === "menu" && bgm.paused) {
+      if (phase === "menu" && bgm.paused && settingMusic) {
         playBGM("menu_gamelan.mp3", 0.26);
       }
     }, { once: true });
 
-    // Mulai Render Loop
     render();
   </script>
 </body>
