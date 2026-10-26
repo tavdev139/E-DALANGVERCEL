@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-DALANG | Wayang Gesture & Physical Controller</title>
+  <link rel="icon" href="preview_wayang.png" type="image/png">
+  <style>
+    :root {
+      --bg: #0d0a08;
+      --card-bg: #1c1510;
+      --card-border: #4a3622;
+      --gold: #d4a03c;
+      --gold-hover: #f1b853;
+      --accent: #c44026;
+      --text: #ecdccc;
+      --text-dim: #a6917b;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at 50% 20%, #201712 0%, var(--bg) 80%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #302216;
+      background: rgba(13, 10, 8, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--gold);
+      letter-spacing: 2px;
+    }
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      margin-left: 20px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover {
+      color: var(--gold);
+    }
+    .hero {
+      text-align: center;
+      padding: 60px 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(212, 160, 60, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      border-radius: 20px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    h1 {
+      font-size: 48px;
+      color: #fff;
+      margin-bottom: 16px;
+      font-family: 'Georgia', serif;
+    }
+    h1 span {
+      color: var(--gold);
+    }
+    p.desc {
+      font-size: 18px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold) 0%, #b8832a 100%);
+      color: #140d06;
+      box-shadow: 0 4px 15px rgba(212, 160, 60, 0.3);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--gold-hover) 0%, #d4a03c 100%);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .preview-box {
+      margin: 40px auto;
+      max-width: 860px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--card-border);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      position: relative;
+    }
+    .preview-box img {
+      width: 100%;
+      display: block;
+    }
+    .features {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 28px;
+      border-radius: 10px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--gold);
+    }
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 {
+      font-size: 20px;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .feature-card p {
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    footer {
+      margin-top: auto;
+      border-top: 1px solid #302216;
+      padding: 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <span>🎭</span> e-DALANG
+    </div>
+    <nav class="nav-links">
+      <a href="https://github.com/tavdev139/E-DALANGVERCEL" target="_blank">GitHub</a>
+      <a href="https://github.com/tavdev139/E-DALANGVERCEL/releases" target="_blank">Download</a>
+    </nav>
+  </header>
+
+  <main class="hero">
+    <div class="badge">Inovasi Budaya & Teknologi Terbuka</div>
+    <h1>Pertunjukan Wayang Kulit Interaktif <span>e-DALANG</span></h1>
+    <p class="desc">
+      Menggabungkan seni tradisional wayang kulit dengan kecerdasan buatan pelacak gestur tangan (MediaPipe AI) serta sistem motor fisik (Arduino UNO Servo & Woodpecker GRBL Stepper).
+    </p>
+
+    <div class="btn-group">
+      <a href="https://github.com/tavdev139/E-DALANGVERCEL" target="_blank" class="btn btn-primary">
+        <span>⭐ Buka Repositori GitHub</span>
+      </a>
+      <a href="https://github.com/tavdev139/E-DALANGVERCEL/releases" target="_blank" class="btn btn-secondary">
+        <span>⬇️ Download Rilis .EXE</span>
+      </a>
+    </div>
+
+    <div class="preview-box">
+      <img src="preview_dua_wayang.png" alt="Preview e-DALANG Stage">
+    </div>
+  </main>
+
+  <section class="features">
+    <div class="feature-card">
+      <div class="feature-icon">🖐️</div>
+      <h3>Pelacakan Gestur Tangan AI</h3>
+      <p>Menggunakan MediaPipe Hand Landmarker untuk mendeteksi telapak tangan, kepalan, dan posisi koordinat tangan secara real-time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚙️</div>
+      <h3>Kontrol Wayang Fisik</h3>
+      <p>Mendukung komunikasi serial non-blocking ke Woodpecker GRBL (Stepper X/Y) dan Arduino Nano/UNO untuk menggerakkan servo fisik wayang.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📖</div>
+      <h3>Kisah Interaktif & Kuis</h3>
+      <p>Dilengkapi narasi suara asli Bahasa Jawa, animasi pergerakan karakter wayang Bima & Arjuna, serta kuis edukasi kebudayaan.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 e-DALANG Project. Dikembangkan oleh tavdev139.</p>
+  </footer>
+</body>
+</html>
