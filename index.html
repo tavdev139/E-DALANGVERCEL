@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>e-DALANG | Wayang Gesture & Physical Controller</title>
-  <link rel="icon" href="preview_wayang.png" type="image/png">
+  <title>e-DALANG | Pertunjukan Wayang Interaktif</title>
+  <link rel="icon" href="assets/bima_new.png" type="image/png">
+  <!-- MediaPipe Hands & Camera Utils via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
   <style>
     :root {
-      --bg: #0d0a08;
-      --card-bg: #1c1510;
-      --card-border: #4a3622;
+      --bg: #0f0b08;
+      --panel: rgba(28, 20, 14, 0.95);
+      --border: #4a3420;
       --gold: #d4a03c;
-      --gold-hover: #f1b853;
-      --accent: #c44026;
+      --gold-light: #f6ca68;
+      --red: #b83320;
       --text: #ecdccc;
       --text-dim: #a6917b;
     }
@@ -20,223 +24,876 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      user-select: none;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     body {
-      background: radial-gradient(circle at 50% 20%, #201712 0%, var(--bg) 80%);
+      background-color: var(--bg);
       color: var(--text);
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
-    }
-    header {
-      padding: 24px 32px;
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #302216;
-      background: rgba(13, 10, 8, 0.85);
-      backdrop-filter: blur(8px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
     }
-    .logo {
+
+    #game-container {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      max-width: 100vw;
+      max-height: 56.25vw;
+      background: #000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.85);
+      border: 2px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* Canvas Stage */
+    #stage-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Video element for webcam (hidden from view, drawn on canvas) */
+    #webcam-video {
+      display: none;
+    }
+
+    /* Overlay Menus & Modals */
+    .overlay-panel {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 7, 5, 0.88);
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 12px;
-      font-size: 24px;
-      font-weight: bold;
-      color: var(--gold);
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 0.3s;
+    }
+    .hidden {
+      display: none !important;
+    }
+
+    h1.title {
+      font-family: 'Georgia', serif;
+      font-size: 52px;
+      color: var(--gold-light);
+      text-shadow: 0 4px 15px rgba(212, 160, 60, 0.5);
+      margin-bottom: 8px;
       letter-spacing: 2px;
     }
-    .nav-links a {
+    p.subtitle {
       color: var(--text-dim);
-      text-decoration: none;
-      margin-left: 20px;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover {
-      color: var(--gold);
-    }
-    .hero {
-      text-align: center;
-      padding: 60px 20px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    .badge {
-      display: inline-block;
-      padding: 6px 16px;
-      background: rgba(212, 160, 60, 0.15);
-      border: 1px solid var(--gold);
-      color: var(--gold);
-      border-radius: 20px;
-      font-size: 13px;
-      margin-bottom: 20px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    h1 {
-      font-size: 48px;
-      color: #fff;
-      margin-bottom: 16px;
-      font-family: 'Georgia', serif;
-    }
-    h1 span {
-      color: var(--gold);
-    }
-    p.desc {
       font-size: 18px;
-      color: var(--text-dim);
-      line-height: 1.6;
-      margin-bottom: 36px;
+      margin-bottom: 40px;
     }
-    .btn-group {
+
+    /* Menu Buttons Grid */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 240px);
+      gap: 20px;
+    }
+    .menu-btn {
+      background: linear-gradient(180deg, #2a1c12 0%, #1a110a 100%);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 16px;
+      color: var(--text);
+      cursor: pointer;
       display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .btn {
-      padding: 14px 28px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      text-decoration: none;
-      display: inline-flex;
+      flex-direction: column;
       align-items: center;
       gap: 10px;
       transition: all 0.2s;
-      cursor: pointer;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--gold) 0%, #b8832a 100%);
-      color: #140d06;
-      box-shadow: 0 4px 15px rgba(212, 160, 60, 0.3);
-    }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, var(--gold-hover) 0%, #d4a03c 100%);
-      transform: translateY(-2px);
-    }
-    .btn-secondary {
-      background: var(--card-bg);
-      color: var(--text);
-      border: 1px solid var(--card-border);
-    }
-    .btn-secondary:hover {
+    .menu-btn:hover {
       border-color: var(--gold);
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(212, 160, 60, 0.35);
+      color: #fff;
+    }
+    .menu-btn .icon {
+      font-size: 32px;
+    }
+    .menu-btn .label {
+      font-size: 18px;
+      font-weight: bold;
       color: var(--gold);
     }
-    .preview-box {
-      margin: 40px auto;
-      max-width: 860px;
+    .menu-btn .subtext {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* Subtitle & Narration HUD */
+    #subtitle-box {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      background: rgba(18, 12, 8, 0.92);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      overflow: hidden;
-      border: 2px solid var(--card-border);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-      position: relative;
+      padding: 16px 24px;
+      z-index: 5;
+      pointer-events: auto;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
     }
-    .preview-box img {
-      width: 100%;
-      display: block;
+    #speaker-tag {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--gold-light);
+      margin-bottom: 6px;
     }
-    .features {
-      max-width: 1100px;
-      margin: 40px auto;
-      padding: 0 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-    }
-    .feature-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      padding: 28px;
-      border-radius: 10px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-    .feature-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--gold);
-    }
-    .feature-icon {
-      font-size: 32px;
-      margin-bottom: 16px;
-    }
-    .feature-card h3 {
+    #dialogue-text {
       font-size: 20px;
-      color: #fff;
-      margin-bottom: 10px;
-    }
-    .feature-card p {
-      color: var(--text-dim);
-      font-size: 15px;
       line-height: 1.5;
+      color: #fff;
     }
-    footer {
-      margin-top: auto;
-      border-top: 1px solid #302216;
-      padding: 24px;
-      text-align: center;
+    #dialogue-hint {
+      margin-top: 8px;
+      font-size: 13px;
       color: var(--text-dim);
+      text-align: right;
+    }
+
+    /* Top HUD in Free Play & Story */
+    #top-hud {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .hud-chip {
+      background: rgba(24, 16, 11, 0.85);
+      border: 1px solid var(--border);
+      padding: 8px 18px;
+      border-radius: 20px;
       font-size: 14px;
+      color: var(--gold);
+      font-weight: bold;
+      pointer-events: auto;
+      backdrop-filter: blur(4px);
+    }
+    .btn-action {
+      background: #2a1c12;
+      border: 1px solid var(--gold);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      pointer-events: auto;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: var(--gold);
+      color: #120c08;
+    }
+
+    /* Hand Tracking Camera PIP Window */
+    #camera-pip {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: 260px;
+      height: 160px;
+      border-radius: 10px;
+      border: 2px solid var(--gold);
+      background: #000;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      z-index: 8;
+    }
+    #pip-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform: scaleX(-1); /* mirror */
+    }
+    .pip-badge {
+      position: absolute;
+      bottom: 6px;
+      left: 8px;
+      background: rgba(0,0,0,0.7);
+      color: var(--gold);
+      padding: 2px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    /* Quiz Modal */
+    #quiz-container {
+      max-width: 680px;
+      width: 90%;
+      background: var(--panel);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+    }
+    #quiz-question {
+      font-size: 24px;
+      color: #fff;
+      margin-bottom: 24px;
+      line-height: 1.4;
+      font-family: 'Georgia', serif;
+    }
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .quiz-opt-btn {
+      background: #25180f;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      color: var(--text);
+      font-size: 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .quiz-opt-btn:hover {
+      border-color: var(--gold);
+      background: #352316;
+    }
+    .quiz-opt-btn.correct {
+      background: #1b4d24;
+      border-color: #4cd964;
+      color: #fff;
+    }
+    .quiz-opt-btn.wrong {
+      background: #5c1e19;
+      border-color: #ff3b30;
+      color: #fff;
+    }
+
+    /* Controls Bar Hint */
+    #bottom-hint {
+      position: absolute;
+      bottom: 8px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo">
-      <span>🎭</span> e-DALANG
-    </div>
-    <nav class="nav-links">
-      <a href="https://github.com/tavdev139/E-DALANGVERCEL" target="_blank">GitHub</a>
-      <a href="https://github.com/tavdev139/E-DALANGVERCEL/releases" target="_blank">Download</a>
-    </nav>
-  </header>
 
-  <main class="hero">
-    <div class="badge">Inovasi Budaya & Teknologi Terbuka</div>
-    <h1>Pertunjukan Wayang Kulit Interaktif <span>e-DALANG</span></h1>
-    <p class="desc">
-      Menggabungkan seni tradisional wayang kulit dengan kecerdasan buatan pelacak gestur tangan (MediaPipe AI) serta sistem motor fisik (Arduino UNO Servo & Woodpecker GRBL Stepper).
-    </p>
+  <div id="game-container">
+    <!-- Main Drawing Stage -->
+    <canvas id="stage-canvas" width="1280" height="720"></canvas>
 
-    <div class="btn-group">
-      <a href="https://github.com/tavdev139/E-DALANGVERCEL" target="_blank" class="btn btn-primary">
-        <span>⭐ Buka Repositori GitHub</span>
-      </a>
-      <a href="https://github.com/tavdev139/E-DALANGVERCEL/releases" target="_blank" class="btn btn-secondary">
-        <span>⬇️ Download Rilis .EXE</span>
-      </a>
+    <!-- Hidden Video for Webcam input -->
+    <video id="webcam-video" playsinline></video>
+
+    <!-- Top HUD Navigation -->
+    <div id="top-hud">
+      <button class="btn-action" id="btn-back-menu">← Menu Utama</button>
+      <div class="hud-chip" id="hud-status">Mode Cerita</div>
+      <button class="btn-action" id="btn-toggle-cam">📷 Kamera Gesture: ON</button>
     </div>
 
-    <div class="preview-box">
-      <img src="preview_dua_wayang.png" alt="Preview e-DALANG Stage">
+    <!-- Hand Tracking PIP Preview -->
+    <div id="camera-pip">
+      <canvas id="pip-canvas" width="320" height="240"></canvas>
+      <div class="pip-badge" id="pip-gesture-text">Mendeteksi Tangan...</div>
     </div>
-  </main>
 
-  <section class="features">
-    <div class="feature-card">
-      <div class="feature-icon">🖐️</div>
-      <h3>Pelacakan Gestur Tangan AI</h3>
-      <p>Menggunakan MediaPipe Hand Landmarker untuk mendeteksi telapak tangan, kepalan, dan posisi koordinat tangan secara real-time.</p>
+    <!-- Subtitle Panel -->
+    <div id="subtitle-box" class="hidden">
+      <div id="speaker-tag">Narator</div>
+      <div id="dialogue-text">Memuat cerita...</div>
+      <div id="dialogue-hint">Klik di mana saja atau tekan [SPASI] untuk lanjut</div>
     </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚙️</div>
-      <h3>Kontrol Wayang Fisik</h3>
-      <p>Mendukung komunikasi serial non-blocking ke Woodpecker GRBL (Stepper X/Y) dan Arduino Nano/UNO untuk menggerakkan servo fisik wayang.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📖</div>
-      <h3>Kisah Interaktif & Kuis</h3>
-      <p>Dilengkapi narasi suara asli Bahasa Jawa, animasi pergerakan karakter wayang Bima & Arjuna, serta kuis edukasi kebudayaan.</p>
-    </div>
-  </section>
 
-  <footer>
-    <p>© 2026 e-DALANG Project. Dikembangkan oleh tavdev139.</p>
-  </footer>
+    <!-- MAIN MENU OVERLAY -->
+    <div id="menu-overlay" class="overlay-panel">
+      <h1 class="title">🎭 e - D A L A N G</h1>
+      <p class="subtitle">Pertunjukan Wayang Kulit Interaktif MediaPipe AI</p>
+
+      <div class="menu-grid">
+        <div class="menu-btn" id="btn-start-story">
+          <div class="icon">📜</div>
+          <div class="label">Mainkan Cerita</div>
+          <div class="subtext">Kisah Bima & Arjuna</div>
+        </div>
+
+        <div class="menu-btn" id="btn-start-freeplay">
+          <div class="icon">⚔️</div>
+          <div class="label">Bebas / Tarung</div>
+          <div class="subtext">Kontrol wayang via tangan</div>
+        </div>
+
+        <div class="menu-btn" id="btn-start-quiz">
+          <div class="icon">❓</div>
+          <div class="label">Kuis Budaya</div>
+          <div class="subtext">Uji pemahaman cerita</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ OVERLAY -->
+    <div id="quiz-overlay" class="overlay-panel hidden">
+      <div id="quiz-container">
+        <div style="font-size: 13px; color: var(--gold); margin-bottom: 12px; letter-spacing: 1px;" id="quiz-progress">SOAL 1 DARI 5</div>
+        <div id="quiz-question">Pertanyaan kuis dimuat di sini...</div>
+        <div class="quiz-options" id="quiz-options-list"></div>
+        <div id="quiz-feedback" style="min-height: 24px; font-weight: bold; margin-bottom: 16px;"></div>
+        <button class="btn-action" id="btn-quiz-next" style="display:none; margin: 0 auto;">Lanjut Pertanyaan →</button>
+      </div>
+    </div>
+
+    <div id="bottom-hint">e-DALANG Web Version • Kontrol Wayang dengan Gerakan Tangan di Depan Kamera</div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       E-DALANG WEB ENGINE (JavaScript + Canvas + MediaPipe Hands)
+       ========================================================================= */
+
+    const canvas = document.getElementById("stage-canvas");
+    const ctx = canvas.getContext("2d");
+    const pipCanvas = document.getElementById("pip-canvas");
+    const pipCtx = pipCanvas.getContext("2d");
+    const video = document.getElementById("webcam-video");
+
+    // Audio Player
+    const bgmPlayer = new Audio();
+    const voicePlayer = new Audio();
+    bgmPlayer.loop = true;
+
+    // Assets cache
+    const images = {};
+    const ASSET_LIST = {
+      // Backgrounds
+      bg_hutan_gua: "assets/bg_hutan_gua.png",
+      bg_persimpangan: "assets/bg_persimpangan.png",
+      bg_jejak_kaki: "assets/bg_jejak_kaki.png",
+      bg_batik: "assets/bg_batik_ui.jpg",
+      // Puppets
+      bima: "assets/bima_new.png",
+      arjuna: "assets/arjuna_new.png",
+      kapi_angeni: "assets/kapi_angeni.png",
+      semar: "assets/semar.png",
+      preview_stage: "preview_dua_wayang.png"
+    };
+
+    // Preload Images
+    let loadedImagesCount = 0;
+    const totalImages = Object.keys(ASSET_LIST).length;
+    for (const [key, src] of Object.entries(ASSET_LIST)) {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => { loadedImagesCount++; };
+      images[key] = img;
+    }
+
+    // Story Data
+    let storyData = null;
+    fetch("story.json")
+      .then(r => r.json())
+      .then(d => { storyData = d; });
+
+    // Quiz Questions (from main.py)
+    const QUIZ_DATA = [
+      {
+        question: "Mengapa Bima dan Arjuna berhenti di persimpangan?",
+        options: ["Mencari makanan", "Menentukan jalan yang benar", "Mencari rumah", "Menunggu hujan"],
+        answer: 1
+      },
+      {
+        question: "Jalan mana yang awalnya dipilih Bima?",
+        options: ["Jalan kanan", "Jalan tengah", "Jalan kiri", "Jalan belakang"],
+        answer: 2
+      },
+      {
+        question: "Apa yang dilakukan Bima dan Arjuna untuk menentukan jalan?",
+        options: ["Bertengkar", "Mencari petunjuk bersama", "Berpisah", "Menunggu orang lain"],
+        answer: 1
+      },
+      {
+        question: "Petunjuk apa yang mereka temukan?",
+        options: ["Peta", "Jejak kaki", "Kompas", "Jembatan"],
+        answer: 1
+      },
+      {
+        question: "Apa pesan utama dari kisah Bima dan Arjuna?",
+        options: ["Selalu mengikuti pendapat sendiri", "Perbedaan harus dihindari", "Saling menghargai dan bekerja sama", "Jangan bepergian ke hutan"],
+        answer: 2
+      }
+    ];
+
+    // State Variables
+    let currentMode = "menu"; // "menu", "story", "freeplay", "quiz"
+    let currentSceneIdx = 0;
+    let currentDialogueIdx = -1; // -1 = narration, >=0 = dialogues
+    let cameraActive = true;
+
+    // Puppet Positions & Physics
+    const puppetLeft = {
+      x: 380,
+      y: 460,
+      targetX: 380,
+      targetY: 460,
+      facing: 1, // 1: kanan, -1: kiri
+      scale: 0.88,
+      imgKey: "bima",
+      gesture: "IDLE",
+      armAngle: 0
+    };
+
+    const puppetRight = {
+      x: 880,
+      y: 460,
+      targetX: 880,
+      targetY: 460,
+      facing: -1,
+      scale: 0.88,
+      imgKey: "arjuna",
+      gesture: "IDLE",
+      armAngle: 0
+    };
+
+    // Curtain animation
+    let curtainOpen = 0; // 0 (closed) to 1 (fully open)
+
+    /* =========================================================================
+       AUDIO HELPERS
+       ========================================================================= */
+    function playVoice(filename) {
+      if (!filename) return;
+      voicePlayer.src = `audio/${filename}`;
+      voicePlayer.play().catch(e => console.log("Audio autoplay restricted:", e));
+    }
+
+    function playBGM(filename) {
+      bgmPlayer.src = `audio/${filename}`;
+      bgmPlayer.volume = 0.35;
+      bgmPlayer.play().catch(e => console.log("BGM autoplay restricted:", e));
+    }
+
+    /* =========================================================================
+       MEDIAPIPE HAND TRACKING
+       ========================================================================= */
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    hands.onResults(onHandResults);
+
+    let cameraInstance = null;
+    function initCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById("pip-gesture-text").innerText = "Webcam tidak didukung";
+        return;
+      }
+      cameraInstance = new Camera(video, {
+        onFrame: async () => {
+          if (cameraActive) {
+            await hands.send({ image: video });
+          }
+        },
+        width: 640,
+        height: 480
+      });
+      cameraInstance.start();
+    }
+
+    function onHandResults(results) {
+      pipCtx.clearRect(0, 0, pipCanvas.width, pipCanvas.height);
+      pipCtx.drawImage(results.image, 0, 0, pipCanvas.width, pipCanvas.height);
+
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        document.getElementById("pip-gesture-text").innerText = "Tangan Tidak Terdeteksi";
+        return;
+      }
+
+      let statusMsg = [];
+
+      for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+        const landmarks = results.multiHandLandmarks[i];
+        const handedness = results.multiHandedness[i]?.label || (i === 0 ? "Left" : "Right");
+
+        // Draw skeleton in PIP
+        drawSkeleton(pipCtx, landmarks);
+
+        // Detect Gestures (Palm / Fist)
+        const isFist = checkIsFist(landmarks);
+        const gesture = isFist ? "KEPALA (SERANG)" : "TELAPAK (GERAK)";
+
+        // Hand Position normalized (0.0 - 1.0)
+        const palmX = landmarks[0].x;
+        const palmY = landmarks[0].y;
+
+        // Map to puppet movement
+        // Handedness in webcam mirror:
+        if (handedness === "Left" || (results.multiHandLandmarks.length === 1 && palmX < 0.5)) {
+          // Controls Left Puppet (Bima)
+          puppetLeft.targetX = 1280 * (1 - palmX);
+          puppetLeft.targetY = 200 + (palmY * 400);
+          puppetLeft.gesture = isFist ? "ATTACK" : "MOVE";
+          puppetLeft.armAngle = isFist ? -0.4 : 0;
+          statusMsg.push(`Kiri: ${gesture}`);
+        } else {
+          // Controls Right Puppet (Arjuna)
+          puppetRight.targetX = 1280 * (1 - palmX);
+          puppetRight.targetY = 200 + (palmY * 400);
+          puppetRight.gesture = isFist ? "ATTACK" : "MOVE";
+          puppetRight.armAngle = isFist ? 0.4 : 0;
+          statusMsg.push(`Kanan: ${gesture}`);
+        }
+      }
+
+      document.getElementById("pip-gesture-text").innerText = statusMsg.join(" • ");
+    }
+
+    function checkIsFist(lm) {
+      // If fingertips are below/closer to wrist than PIP joints, it's a fist
+      const indexFold = lm[8].y > lm[6].y;
+      const middleFold = lm[12].y > lm[10].y;
+      const ringFold = lm[16].y > lm[14].y;
+      const pinkyFold = lm[20].y > lm[18].y;
+      return indexFold && middleFold && ringFold && pinkyFold;
+    }
+
+    function drawSkeleton(pctx, lm) {
+      pctx.strokeStyle = "#4cd964";
+      pctx.lineWidth = 3;
+      const connections = [
+        [0,1],[1,2],[2,3],[3,4],
+        [0,5],[5,6],[6,7],[7,8],
+        [5,9],[9,10],[10,11],[11,12],
+        [9,13],[13,14],[14,15],[15,16],
+        [13,17],[17,18],[18,19],[19,20],[0,17]
+      ];
+      for (const [a, b] of connections) {
+        pctx.beginPath();
+        pctx.moveTo(lm[a].x * pipCanvas.width, lm[a].y * pipCanvas.height);
+        pctx.lineTo(lm[b].x * pipCanvas.width, lm[b].y * pipCanvas.height);
+        pctx.stroke();
+      }
+      pctx.fillStyle = "#ffcc00";
+      for (const pt of lm) {
+        pctx.beginPath();
+        pctx.arc(pt.x * pipCanvas.width, pt.y * pipCanvas.height, 4, 0, Math.PI * 2);
+        pctx.fill();
+      }
+    }
+
+    /* =========================================================================
+       MAIN RENDER LOOP
+       ========================================================================= */
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Smooth puppet movement interpolation
+      puppetLeft.x += (puppetLeft.targetX - puppetLeft.x) * 0.15;
+      puppetLeft.y += (puppetLeft.targetY - puppetLeft.y) * 0.15;
+      puppetRight.x += (puppetRight.targetX - puppetRight.x) * 0.15;
+      puppetRight.y += (puppetRight.targetY - puppetRight.y) * 0.15;
+
+      // 1. Draw Background
+      drawBackground();
+
+      // 2. Draw Puppets (Wayang)
+      drawPuppet(puppetLeft);
+      drawPuppet(puppetRight);
+
+      // 3. Draw Curtains
+      drawCurtains();
+
+      requestAnimationFrame(render);
+    }
+
+    function drawBackground() {
+      let bgImg = images.bg_hutan_gua;
+      if (currentMode === "story" && storyData) {
+        const sc = storyData.scenes[currentSceneIdx];
+        if (sc && sc.background === "persimpangan") bgImg = images.bg_persimpangan;
+        else if (sc && sc.background === "jejak_kaki") bgImg = images.bg_jejak_kaki;
+      }
+      if (bgImg && bgImg.complete) {
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#1e1510";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Atmospheric Shadow Effect
+      const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 200, canvas.width/2, canvas.height/2, 700);
+      grad.addColorStop(0, "rgba(0,0,0,0)");
+      grad.addColorStop(1, "rgba(0,0,0,0.65)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawPuppet(p) {
+      const img = images[p.imgKey];
+      if (!img || !img.complete) return;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.scale(p.facing * p.scale, p.scale);
+
+      // Attack lunging rotation
+      if (p.gesture === "ATTACK") {
+        ctx.rotate(p.facing * 0.12);
+      }
+
+      // Puppet Shadow
+      ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 12;
+
+      const pw = img.width * 0.7;
+      const ph = img.height * 0.7;
+      ctx.drawImage(img, -pw/2, -ph/2, pw, ph);
+
+      ctx.restore();
+    }
+
+    function drawCurtains() {
+      const curtainWidth = 140;
+      // Left curtain
+      const gradL = ctx.createLinearGradient(0, 0, curtainWidth, 0);
+      gradL.addColorStop(0, "rgba(90, 15, 15, 0.95)");
+      gradL.addColorStop(0.8, "rgba(50, 10, 10, 0.85)");
+      gradL.addColorStop(1, "rgba(30, 5, 5, 0)");
+      ctx.fillStyle = gradL;
+      ctx.fillRect(0, 0, curtainWidth, canvas.height);
+
+      // Right curtain
+      const gradR = ctx.createLinearGradient(canvas.width, 0, canvas.width - curtainWidth, 0);
+      gradR.addColorStop(0, "rgba(90, 15, 15, 0.95)");
+      gradR.addColorStop(0.8, "rgba(50, 10, 10, 0.85)");
+      gradR.addColorStop(1, "rgba(30, 5, 5, 0)");
+      ctx.fillStyle = gradR;
+      ctx.fillRect(canvas.width - curtainWidth, 0, curtainWidth, canvas.height);
+    }
+
+    /* =========================================================================
+       STORY FLOW CONTROLLER
+       ========================================================================= */
+    function startStory() {
+      currentMode = "story";
+      currentSceneIdx = 0;
+      currentDialogueIdx = -1;
+      document.getElementById("menu-overlay").classList.add("hidden");
+      document.getElementById("subtitle-box").classList.remove("hidden");
+      document.getElementById("hud-status").innerText = "Kisah: Adegan 1";
+      playBGM("03_musik_pembuka.mp3");
+      loadSceneStep();
+    }
+
+    function loadSceneStep() {
+      if (!storyData || !storyData.scenes[currentSceneIdx]) {
+        // Story finished -> launch quiz
+        startQuiz();
+        return;
+      }
+      const scene = storyData.scenes[currentSceneIdx];
+      document.getElementById("hud-status").innerText = `Adegan ${scene.id}: ${scene.title}`;
+
+      if (currentDialogueIdx === -1) {
+        // Narration
+        document.getElementById("speaker-tag").innerText = "Narator";
+        document.getElementById("dialogue-text").innerText = scene.narration_text;
+        playVoice(scene.narration);
+      } else {
+        // Dialogue
+        const diag = scene.dialogues[currentDialogueIdx];
+        if (diag) {
+          const [speaker, text, audio] = diag;
+          document.getElementById("speaker-tag").innerText = speaker;
+          document.getElementById("dialogue-text").innerText = text;
+          playVoice(audio);
+
+          // Animate speaking puppet
+          if (speaker.toLowerCase().includes("bima")) {
+            puppetLeft.targetY -= 20;
+          } else {
+            puppetRight.targetY -= 20;
+          }
+        }
+      }
+    }
+
+    function nextStoryStep() {
+      if (currentMode !== "story" || !storyData) return;
+      const scene = storyData.scenes[currentSceneIdx];
+
+      if (currentDialogueIdx === -1) {
+        currentDialogueIdx = 0;
+        loadSceneStep();
+      } else if (currentDialogueIdx < scene.dialogues.length - 1) {
+        currentDialogueIdx++;
+        loadSceneStep();
+      } else {
+        // Next Scene
+        currentSceneIdx++;
+        currentDialogueIdx = -1;
+        loadSceneStep();
+      }
+    }
+
+    /* =========================================================================
+       QUIZ SYSTEM
+       ========================================================================= */
+    let currentQuizIdx = 0;
+    let quizScore = 0;
+
+    function startQuiz() {
+      currentMode = "quiz";
+      currentQuizIdx = 0;
+      quizScore = 0;
+      document.getElementById("subtitle-box").classList.add("hidden");
+      document.getElementById("menu-overlay").classList.add("hidden");
+      document.getElementById("quiz-overlay").classList.remove("hidden");
+      document.getElementById("hud-status").innerText = "Kuis Budaya Wayang";
+      showQuizQuestion();
+    }
+
+    function showQuizQuestion() {
+      const q = QUIZ_DATA[currentQuizIdx];
+      document.getElementById("quiz-progress").innerText = `SOAL ${currentQuizIdx + 1} DARI ${QUIZ_DATA.length}`;
+      document.getElementById("quiz-question").innerText = q.question;
+      document.getElementById("quiz-feedback").innerText = "";
+      document.getElementById("btn-quiz-next").style.display = "none";
+
+      const list = document.getElementById("quiz-options-list");
+      list.innerHTML = "";
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "quiz-opt-btn";
+        btn.innerText = `${String.fromCharCode(65 + idx)}. ${opt}`;
+        btn.onclick = () => selectQuizAnswer(idx, btn);
+        list.appendChild(btn);
+      });
+    }
+
+    function selectQuizAnswer(chosenIdx, selectedBtn) {
+      const q = QUIZ_DATA[currentQuizIdx];
+      const allBtns = document.querySelectorAll(".quiz-opt-btn");
+      allBtns.forEach(b => b.style.pointerEvents = "none");
+
+      if (chosenIdx === q.answer) {
+        selectedBtn.classList.add("correct");
+        document.getElementById("quiz-feedback").innerText = "Benar! Jawabanmu tepat sekali. ✨";
+        document.getElementById("quiz-feedback").style.color = "#4cd964";
+        quizScore++;
+      } else {
+        selectedBtn.classList.add("wrong");
+        allBtns[q.answer].classList.add("correct");
+        document.getElementById("quiz-feedback").innerText = "Kurang tepat, perhatikan jalan ceritanya.";
+        document.getElementById("quiz-feedback").style.color = "#ff3b30";
+      }
+
+      document.getElementById("btn-quiz-next").style.display = "block";
+    }
+
+    document.getElementById("btn-quiz-next").onclick = () => {
+      if (currentQuizIdx < QUIZ_DATA.length - 1) {
+        currentQuizIdx++;
+        showQuizQuestion();
+      } else {
+        // Quiz Finished
+        document.getElementById("quiz-progress").innerText = "HASIL KUIS SELESAI";
+        document.getElementById("quiz-question").innerText = `Skor Akhir: ${quizScore} / ${QUIZ_DATA.length}`;
+        document.getElementById("quiz-options-list").innerHTML = `
+          <div style="font-size: 18px; color: var(--gold-light); margin: 20px 0;">
+            ${quizScore >= 4 ? "Luar biasa! Pemahamanmu terhadap kisah wayang sangat mendalam." : "Bagus! Terus lestarikan dan pelajari kekayaan budaya Nusantara."}
+          </div>
+        `;
+        document.getElementById("btn-quiz-next").innerText = "Kembali ke Menu Utama";
+        document.getElementById("btn-quiz-next").onclick = () => {
+          document.getElementById("quiz-overlay").classList.add("hidden");
+          document.getElementById("menu-overlay").classList.remove("hidden");
+          currentMode = "menu";
+          document.getElementById("btn-quiz-next").innerText = "Lanjut Pertanyaan →";
+        };
+      }
+    };
+
+    /* =========================================================================
+       EVENT LISTENERS
+       ========================================================================= */
+    document.getElementById("btn-start-story").onclick = startStory;
+
+    document.getElementById("btn-start-freeplay").onclick = () => {
+      currentMode = "freeplay";
+      document.getElementById("menu-overlay").classList.add("hidden");
+      document.getElementById("subtitle-box").classList.add("hidden");
+      document.getElementById("hud-status").innerText = "Mode Bebas / Tarung (Gestur Tangan Aktif)";
+      playBGM("menu_gamelan.mp3");
+    };
+
+    document.getElementById("btn-start-quiz").onclick = startQuiz;
+
+    document.getElementById("btn-back-menu").onclick = () => {
+      currentMode = "menu";
+      document.getElementById("menu-overlay").classList.remove("hidden");
+      document.getElementById("subtitle-box").classList.add("hidden");
+      document.getElementById("quiz-overlay").classList.add("hidden");
+      document.getElementById("hud-status").innerText = "Menu Utama";
+      bgmPlayer.pause();
+      voicePlayer.pause();
+    };
+
+    document.getElementById("btn-toggle-cam").onclick = () => {
+      cameraActive = !cameraActive;
+      document.getElementById("btn-toggle-cam").innerText = `📷 Kamera Gesture: ${cameraActive ? "ON" : "OFF"}`;
+      document.getElementById("camera-pip").style.display = cameraActive ? "block" : "none";
+    };
+
+    // Click/Space to advance story
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        nextStoryStep();
+      }
+    });
+
+    document.getElementById("stage-canvas").addEventListener("click", () => {
+      if (currentMode === "story") {
+        nextStoryStep();
+      }
+    });
+
+    document.getElementById("subtitle-box").addEventListener("click", () => {
+      if (currentMode === "story") {
+        nextStoryStep();
+      }
+    });
+
+    // START
+    initCamera();
+    render();
+  </script>
 </body>
 </html>
